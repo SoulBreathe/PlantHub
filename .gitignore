@@ -1,0 +1,16 @@
+# Arquivos de Cache e Bytecode do Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Banco de dados SQLite
+*.db
+*.db-journal
+
+# Arquivos de configuração de IDEs
+.vscode/
+.idea/
+
+# Arquivos gerados pelo sistema operacional
+.DS_Store
+Thumbs.db

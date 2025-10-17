@@ -1,5 +1,6 @@
 import sqlite3
-from typing import Optional
+from typing import Optional, List
+from models.local import Local
 
 class DatabaseService: 
     _instance: Optional['DatabaseService'] = None
@@ -24,6 +25,7 @@ class DatabaseService:
         if self._connection is None:
             try: 
                 self._connection = sqlite3.connect(self.DATABASE_PATH)
+                self._connection.execute("PRAGMA foreign_keys = ON;")
                 print("Conexão com o banco de dados estabelecida com sucesso.")
                 self._create_database()
             except sqlite3.Error as e:
@@ -64,3 +66,30 @@ class DatabaseService:
             self._connection.close()
             self._connection = None
             print("Conexão com o banco de dados fechada.")
+
+    def add_local(self, local: Local) -> Local:
+        conn = self.get_connection()
+        cursor = conn.cursor()
+
+        sql = "INSERT INTO Locais (nome) VALUES (?)"
+        cursor.execute(sql, (local.nome,))
+
+        conn.commit()
+
+        local.id_local = cursor.lastrowid
+        print(f"Local '{local.nome}' adicionado com o ID: {local.id_local}")
+        return local
+    
+
+    def get_all_locais(self) -> List[Local]:
+        conn = self.get_connection()
+        cursor = conn.cursor()
+
+        sql = "SELECT id_local, nome FROM Locais ORDER BY nome"
+        cursor.execute(sql)
+
+        rows = cursor.fetchall()
+
+        locais = [Local(id_local=row[0], nome=row[1]) for row in rows]
+
+        return locais

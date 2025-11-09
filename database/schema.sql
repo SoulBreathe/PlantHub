@@ -1,7 +1,10 @@
 -- Tabela para armazenar os locais de cultivo
 CREATE TABLE IF NOT EXISTS Locais (
     id_local INTEGER PRIMARY KEY AUTOINCREMENT,
-    nome TEXT NOT NULL UNIQUE
+    nome TEXT NOT NULL UNIQUE,
+    descricao TEXT,
+    tipo TEXT,
+    area_m2 REAL DEFAULT 0.0
 );
 
 -- Tabela para catálogo de espécies de plantas
@@ -84,7 +87,7 @@ CREATE TABLE IF NOT EXISTS DiagnosticoRespostas (
 );
 
 -- Tabela que mapeia respostas a possiveis diagnosticos 
-CREATE TABLE IF NOT EXISTS DisgnosticoMapeamento (
+CREATE TABLE IF NOT EXISTS DiagnosticoMapeamento (
     id_resposta INTEGER NOT NULL,
     id_praga INTEGER NOT NULL,
     PRIMARY KEY (id_resposta, id_praga),

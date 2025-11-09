@@ -2,12 +2,13 @@ import sqlite3
 from typing import Optional, List
 from models.local import Local
 
-class DatabaseService: 
-    _instance: Optional['DatabaseService'] = None
+
+class DatabaseService:
+    _instance: Optional["DatabaseService"] = None
     _connection: Optional[sqlite3.Connection] = None
 
-    DATABASE_PATH = 'database/Horta.db'
-    SCHEMA_PATH = 'database/schema.sql'
+    DATABASE_PATH = "database/Horta.db"
+    SCHEMA_PATH = "database/schema.sql"
 
     def __new__(cls):
         """
@@ -17,13 +18,13 @@ class DatabaseService:
             cls._instance = super(DatabaseService, cls).__new__(cls)
             cls._instance.connect()
         return cls._instance
-    
+
     def connect(self) -> None:
         """
-        Estabelece a conexão com o banco de dados e cria as tabelas se não existirem. 
+        Estabelece a conexão com o banco de dados e cria as tabelas se não existirem.
         """
         if self._connection is None:
-            try: 
+            try:
                 self._connection = sqlite3.connect(self.DATABASE_PATH)
                 self._connection.execute("PRAGMA foreign_keys = ON;")
                 print("Conexão com o banco de dados estabelecida com sucesso.")
@@ -37,9 +38,9 @@ class DatabaseService:
         Método privado para ler o arquivo schema.sql e criar as tabelas.
         """
         if self._connection:
-            try: 
+            try:
                 print("Verificando e criando tabelas se necessário...")
-                with open(self.SCHEMA_PATH, 'r') as f:
+                with open(self.SCHEMA_PATH, "r") as f:
                     schema_script = f.read()
                 self._connection.executescript(schema_script)
                 self._connection.commit()
@@ -51,13 +52,15 @@ class DatabaseService:
 
     def get_connection(self) -> sqlite3.Connection:
         """
-        Retorna a conexão ativa com o banco de dados. 
+        Retorna a conexão ativa com o banco de dados.
         Lança uma exceção se a conexão não estiver estabelecida.
         """
         if self._connection is None:
-            raise ConnectionError("A conexão com o baco de dados não foi estabelecidade.")
+            raise ConnectionError(
+                "A conexão com o banco de dados não foi estabelecida."
+            )
         return self._connection
-    
+
     def close_connection(self) -> None:
         """
         Fecha a conexão com o banco de dados se estiver aberta.
@@ -70,26 +73,29 @@ class DatabaseService:
     def add_local(self, local: Local) -> Local:
         conn = self.get_connection()
         cursor = conn.cursor()
-
-        sql = "INSERT INTO Locais (nome) VALUES (?)"
-        cursor.execute(sql, (local.nome,))
-
+        cursor.execute("INSERT INTO Locais (nome) VALUES (?)", (local.nome,))
         conn.commit()
+        new_id = cursor.lastrowid
+        return Local(nome=local.nome, id_local=new_id)
 
-        local.id_local = cursor.lastrowid
-        print(f"Local '{local.nome}' adicionado com o ID: {local.id_local}")
-        return local
-    
-
-    def get_all_locais(self) -> List[Local]:
+    def get_all_locais(self):
         conn = self.get_connection()
         cursor = conn.cursor()
+        cursor.execute(
+            """
+            SELECT id_local, nome, descricao, tipo, area_m2 
+            FROM Locais 
+            ORDER BY nome
+        """
+        )
 
-        sql = "SELECT id_local, nome FROM Locais ORDER BY nome"
-        cursor.execute(sql)
-
-        rows = cursor.fetchall()
-
-        locais = [Local(id_local=row[0], nome=row[1]) for row in rows]
-
-        return locais
+        return [
+            Local(
+                id_local=row[0],
+                nome=row[1],
+                descricao=row[2],
+                tipo=row[3] or "outro",
+                area_m2=row[4] or 0.0,
+            )
+            for row in cursor.fetchall()
+        ]

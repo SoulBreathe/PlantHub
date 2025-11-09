@@ -1,25 +1,27 @@
+# main.py
 import flet as ft
 from views.home_view import HomeView
+from views.app_layout import AppLayout
+from views.locais_view import LocaisView
+from views.diagnostico_view import DiagnosticoView
 from services.database_service import DatabaseService
 
+
 def main(page: ft.Page):
-    page.title = "PlantHub"
-    page.window_width = 400
-    page.window_height = 800
 
-    # --- Definição dos Temas ---
-
-    # Tema Claro: fundo branco, elementos verdes
+    # Temas
     page.theme = ft.Theme(color_scheme_seed=ft.Colors.GREEN)
-    
-    # Tema Escuro: fundo escuro, elementos verdes
-    page.dark_theme = ft.Theme(color_scheme_seed=ft.Colors.GREEN)
-
-    # Inicia o tema claro como padrao 
+    page.dark_theme = ft.Theme(color_scheme_seed="#097A12")
     page.theme_mode = ft.ThemeMode.LIGHT
 
-    # -- Inicialização de Serviços --
-    db_service = DatabaseService
+    def update_background():
+        if page.theme_mode == ft.ThemeMode.DARK:
+            page.bgcolor = "#097A12"
+        else:
+            page.bgcolor = None
+        page.update()
+
+    update_background()
 
     def theme_changed(e):
         page.theme_mode = (
@@ -27,26 +29,43 @@ def main(page: ft.Page):
             if page.theme_mode == ft.ThemeMode.LIGHT
             else ft.ThemeMode.LIGHT
         )
-        page.update()
+        update_background()
 
     def route_change(route):
         print(f"navegando para a rota: {page.route}")
         page.views.clear()
 
         if page.route == "/":
-            page.views.append(HomeView(page, theme_changed))
+            content = HomeView(page)
+        elif page.route == "/locais":
+            content = LocaisView(page)
+        elif page.route == "/diagnostico":
+            content = DiagnosticoView(page)
+        else:
+            content = ft.Text(f"Rota não encontrada: {page.route}", size=20)
 
+        layout = AppLayout(page=page, theme_changed=theme_changed, content=content)
+
+        view = ft.View(
+            route=page.route,
+            controls=[layout],
+            appbar=ft.AppBar(
+                actions=[
+                    ft.IconButton(
+                        icon=ft.Icons.BRIGHTNESS_4_OUTLINED,
+                        tooltip="Mudar tema",
+                        on_click=theme_changed,
+                    )
+                ],
+            ),
+        )
+
+        page.views.append(view)
         page.update()
 
-    def view_pop(view):
-        page.views.pop()
-        top_view = page.views[-1]
-        page.go(top_view.route)
-    
     page.on_route_change = route_change
-    page.on_view_pop = view_pop
-
     page.go("/")
+
 
 if __name__ == "__main__":
     ft.app(target=main)

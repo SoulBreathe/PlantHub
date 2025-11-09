@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from typing import Optional
 
+
 @dataclass
 class Especie:
     nome_popular: str
@@ -11,4 +12,3 @@ class Especie:
     uso_adubos: Optional[str]
     epoca_plantio: Optional[str]
     id_especie: Optional[int] = None
-    

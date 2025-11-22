@@ -1,4 +1,3 @@
-# views/home_view.py
 import flet as ft
 
 
@@ -45,37 +44,37 @@ def HomeView(page: ft.Page) -> ft.Column:
     card_locais = criar_card(
         icono=ft.Icons.LOCATION_ON,
         label="Locais",
-        cor_fundo=ft.Colors.GREEN,
+        cor_fundo="#677d34",
         rota="/locais",
     )
     card_plantas = criar_card(
         icono=ft.Icons.LOCAL_FLORIST,
         label="Minhas Plantas",
-        cor_fundo=ft.Colors.ORANGE,
+        cor_fundo="#b3b300",
         rota="/plantas",
     )
     card_diario = criar_card(
         icono=ft.Icons.BOOK,
         label="Diário",
-        cor_fundo=ft.Colors.BLUE,
+        cor_fundo="#677d34",
         rota="/diario",
     )
     card_agenda = criar_card(
         icono=ft.Icons.EVENT,
         label="Agenda",
-        cor_fundo=ft.Colors.PURPLE,
+        cor_fundo="#0000b3",
         rota="/agenda",
     )
     card_diagnostico = criar_card(
         icono=ft.Icons.HEALTH_AND_SAFETY,
         label="Diagnóstico",
-        cor_fundo=ft.Colors.RED,
+        cor_fundo="#cc4124",
         rota="/diagnostico",
     )
     card_pragas = criar_card(
         icono=ft.Icons.BUG_REPORT,
         label="Pragas",
-        cor_fundo=ft.Colors.DEEP_ORANGE,
+        cor_fundo="#de5f45",
         rota="/pragas",
     )
 

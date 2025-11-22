@@ -1,40 +1,16 @@
-# views/app_layout.py
 import flet as ft
 
 
-class AppLayout(ft.ResponsiveRow):
-    def __init__(self, page: ft.Page, theme_changed, content: ft.Control):
+class AppLayout(ft.Container):
+    def __init__(self, page: ft.Page, content: ft.Control):
         super().__init__(
-            columns=12,
-            spacing=0,
-            run_spacing=0,
-            expand=True,
-        )
-        self.controls = [
-            ft.Column(
+            content=ft.Column(
                 controls=[content],
-                col={"xs": 12},
+                alignment=ft.MainAxisAlignment.START,
+                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                 expand=True,
-            )
-        ]
-
-        self.page = page
-        self.theme_changed = theme_changed
-        self.page_content = content
-
-        # Só exibe o conteúdo centralizado
-        self.build_layout()
-
-    def build_layout(self):
-        self.controls.clear()
-
-        content_col = ft.Column(
-            controls=[self.page_content],
-            col={"xs": 12, "md": 12},  # ocupa toda a largura
+            ),
             expand=True,
+            alignment=ft.alignment.center,
+            padding=ft.padding.symmetric(horizontal=10, vertical=5),
         )
-
-        self.controls = [content_col]
-
-    def nav_change(self, e):  # pode manter, mas não será usado
-        pass

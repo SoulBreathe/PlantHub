@@ -1,11 +1,12 @@
+# models/planta_completa.py
 from dataclasses import dataclass
 from typing import Optional
 
 
 @dataclass
-class Planta:
+class PlantaCompleta:
+    id_planta: int
     nome_personalizado: str
+    nome_popular: str
+    nome_local: str
     data_plantio: Optional[str] = None
-    id_especie: int = 0
-    id_local: int = 0
-    id_planta: Optional[int] = None

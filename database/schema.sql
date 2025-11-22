@@ -19,15 +19,19 @@ CREATE TABLE IF NOT EXISTS Especies (
     epoca_plantio TEXT 
 );
 
--- Tabela para plantas que o usuario possui 
+-- Tabela para plantas que o usuário possui
 CREATE TABLE IF NOT EXISTS MinhasPlantas (
     id_planta INTEGER PRIMARY KEY AUTOINCREMENT,
     nome_personalizado TEXT NOT NULL,
     data_plantio DATE,
     id_especie INTEGER NOT NULL,
     id_local INTEGER NOT NULL,
-    FOREIGN KEY (id_especie) REFERENCES Especies(id_especie),
-    FOREIGN KEY (id_local) REFERENCES locais(id_local)
+    FOREIGN KEY (id_especie) REFERENCES Especies(id_especie)
+        ON DELETE RESTRICT
+        ON UPDATE CASCADE,
+    FOREIGN KEY (id_local) REFERENCES Locais(id_local) 
+        ON DELETE RESTRICT
+        ON UPDATE CASCADE
 );
 
 -- Tabela para agendar os cuidados (rega, adubação, etc...)
@@ -35,7 +39,7 @@ CREATE TABLE IF NOT EXISTS AgendaDeCuidados (
     id_agenda INTEGER PRIMARY KEY AUTOINCREMENT,
     tipo_tarefa TEXT NOT NULL,
     detalhes TEXT,
-    data_agendada DATE NOT NULL,
+    data_agendada DATE NOT NULL CHECK (data_agendada >= date('now')),
     realizada INTEGER NOT NULL DEFAULT 0,
     id_planta INTEGER NOT NULL,
     FOREIGN KEY (id_planta) REFERENCES MinhasPlantas(id_planta)
@@ -63,7 +67,7 @@ CREATE TABLE IF NOT EXISTS PragasDoencas (
 -- Tabela para registrar quando uma planta foi afetada por uma praga
 CREATE TABLE IF NOT EXISTS RegistroDePragas (
     id_registro_praga INTEGER PRIMARY KEY AUTOINCREMENT,
-    data_indentificacao DATE NOT NULL,
+    data_identificacao DATE NOT NULL,
     status_tratamento TEXT,
     id_planta INTEGER NOT NULL,
     id_praga INTEGER NOT NULL,
@@ -74,7 +78,7 @@ CREATE TABLE IF NOT EXISTS RegistroDePragas (
 -- Tabela para as perguntas do assistente de diagnóstico 
 CREATE TABLE IF NOT EXISTS DiagnosticoPerguntas (
     id_pergunta INTEGER PRIMARY KEY AUTOINCREMENT,
-    text_pergunta TEXT NOT NULL,
+    texto_pergunta TEXT NOT NULL,
     ordem INTEGER NOT NULL UNIQUE
 );
 

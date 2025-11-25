@@ -4,11 +4,12 @@ from typing import Optional
 
 @dataclass
 class Especie:
-    nome_popular: str
-    nome_cientifico: Optional[str]
-    instrucoes_rega: Optional[str]
-    necessidade_sol: Optional[str]
-    necessidade_poda: Optional[str]
-    uso_adubos: Optional[str]
-    epoca_plantio: Optional[str]
     id_especie: Optional[int] = None
+    nome_popular: str = ""
+    nome_cientifico: Optional[str] = None
+    instrucoes_rega: Optional[str] = None
+    necessidade_sol: Optional[str] = None
+    necessidade_poda: Optional[str] = None
+    uso_adubos: Optional[str] = None
+    epoca_plantio: Optional[str] = None
+    foto_exemplo: Optional[str] = None

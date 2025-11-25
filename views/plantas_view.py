@@ -1,67 +1,96 @@
-# views/minhasPlantas_view.py
 import flet as ft
-from models.planta_completa import PlantaCompleta
+from datetime import datetime
 from services.database_service import DatabaseService
-
-
-def criar_card_planta(planta: PlantaCompleta) -> ft.Container:
-    data_fmt = planta.data_plantio if planta.data_plantio else "—"
-    return ft.Container(
-        content=ft.Column(
-            [
-                ft.Text(planta.nome_personalizado, weight=ft.FontWeight.BOLD, size=16),
-                ft.Text(f"🌿 {planta.nome_popular}", size=14),
-                ft.Text(f"📍 {planta.nome_local}", size=12, color=ft.Colors.GREY_600),
-                ft.Text(f"📅 {data_fmt}", size=12, color=ft.Colors.GREY_500),
-            ],
-            spacing=4,
-        ),
-        padding=12,
-        bgcolor=ft.Colors.SURFACE_VARIANT,
-        border_radius=10,
-        width=150,
-        height=150,
-        shadow=ft.BoxShadow(blur_radius=4, color=ft.Colors.BLACK12, spread_radius=1),
-    )
 
 
 def MinhasPlantasView(page: ft.Page):
     db = DatabaseService()
     plantas = db.get_plantas_completas()
 
-    coluna_esq = ft.Column(spacing=16, expand=False)
-    coluna_dir = ft.Column(spacing=16, expand=False)
+    def formatar_data(data_iso):
+        """
+        Converte AAAA-MM-DD para DD/MM/AAAA.
+        Trata casos onde o banco retorna Inteiro ou None.
+        """
+        if not data_iso:
+            return "--/--/----"
 
-    for i, planta in enumerate(plantas):
-        card = criar_card_planta(planta)
-        if i % 2 == 0:
-            coluna_esq.controls.append(card)
-        else:
-            coluna_dir.controls.append(card)
+        # Garante que é string (resolve o erro do 'int')
+        data_str = str(data_iso)
 
-    conteudo = ft.Row(
-        [coluna_esq, coluna_dir], spacing=16, alignment=ft.MainAxisAlignment.CENTER
-    )
+        try:
+            # Tenta converter do formato padrão do banco
+            data_obj = datetime.strptime(data_str, "%Y-%m-%d")
+            return data_obj.strftime("%d/%m/%Y")
+        except ValueError:
+            # Se não estiver no formato AAAA-MM-DD, retorna como está
+            # Isso evita que o app trave se houver um dado estranho
+            return data_str
 
-    if not plantas:
-        conteudo = ft.Container(
-            content=ft.Column(
-                [
-                    ft.Icon(ft.Icons.INFO_OUTLINE, size=64, color=ft.Colors.GREY_400),
-                    ft.Text("Nenhuma planta cadastrada", size=20),
-                    ft.Text("Adicione suas plantas para começar!", size=14),
-                ],
-                alignment=ft.MainAxisAlignment.CENTER,
-                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+    def criar_card_planta(p):
+        return ft.Container(
+            padding=5,
+            bgcolor="white",
+            border_radius=12,
+            margin=ft.margin.only(bottom=10),
+            shadow=ft.BoxShadow(blur_radius=8, color=ft.Colors.BLACK12),
+            border=ft.border.all(1, "#f0f0f0"),
+            content=ft.ListTile(
+                leading=ft.Container(
+                    width=45,
+                    height=45,
+                    bgcolor="#E8F5E9",
+                    border_radius=25,
+                    alignment=ft.alignment.center,
+                    content=ft.Icon(ft.Icons.LOCAL_FLORIST, color="#097A12", size=24),
+                ),
+                title=ft.Text(
+                    p.nome_personalizado, weight=ft.FontWeight.BOLD, color="#333333"
+                ),
+                subtitle=ft.Column(
+                    controls=[
+                        ft.Text(f"Espécie: {p.nome_popular}", size=12, color="grey"),
+                        # Agora blindado contra erros de tipo 👇
+                        ft.Text(
+                            f"Local: {p.nome_local} • {formatar_data(p.data_plantio)}",
+                            size=12,
+                            color="grey",
+                        ),
+                    ],
+                    spacing=0,
+                ),
+                trailing=ft.IconButton(
+                    icon=ft.Icons.EDIT_OUTLINED,
+                    icon_color="grey",
+                    tooltip="Editar Planta",
+                    on_click=lambda _: page.go(f"/plantas/editar/{p.id_planta}"),
+                ),
+                is_three_line=True,
             ),
+        )
+
+    # --- Estado Vazio ---
+    if not plantas:
+        return ft.Column(
+            controls=[
+                ft.Icon(ft.Icons.EMOJI_NATURE, size=64, color="#097A12"),
+                ft.Text(
+                    "Sua horta está vazia!",
+                    size=18,
+                    weight=ft.FontWeight.BOLD,
+                    color="#333333",
+                ),
+                ft.Text("Adicione sua primeira planta.", size=14, color="grey"),
+            ],
+            alignment=ft.MainAxisAlignment.CENTER,
+            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
             expand=True,
         )
 
-    return ft.Column(
-        controls=[
-            ft.ListView(
-                controls=[conteudo] if plantas else [conteudo], expand=True, padding=10
-            ),
-        ],
+    # --- Lista ---
+    return ft.ListView(
+        controls=[criar_card_planta(p) for p in plantas],
+        padding=15,
+        spacing=0,
         expand=True,
     )

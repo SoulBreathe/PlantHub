@@ -1,33 +1,31 @@
 import flet as ft
 from services.database_service import DatabaseService
 from models.local import Local
-
 from components.card_padrao import CardPremium
 
 
 def LocaisNovaView(page: ft.Page):
     db = DatabaseService()
 
-    # --- Campos do formulário ---
-    nome = ft.TextField(
-        label="Nome do local (ex: Varanda Sul)",
-        width=300,
-        border_color="#097A12",
+    # --- Elementos da UI ---
+    txt_nome = ft.TextField(
+        label="Nome do local (ex: Varanda)", width=300, border_color="#097A12"
     )
 
-    tipo = ft.Dropdown(
+    dd_tipo = ft.Dropdown(
         label="Tipo",
-        options=[
-            ft.dropdown.Option("jardim"),
-            ft.dropdown.Option("varanda"),
-            ft.dropdown.Option("horta"),
-            ft.dropdown.Option("estufa"),
-        ],
         width=300,
+        options=[
+            ft.dropdown.Option("Estufa"),
+            ft.dropdown.Option("Horta"),
+            ft.dropdown.Option("Jardim"),
+            ft.dropdown.Option("Varanda"),
+            ft.dropdown.Option("Interno"),
+        ],
         border_color="#097A12",
     )
 
-    area = ft.TextField(
+    txt_area = ft.TextField(
         label="Área (m²)",
         hint_text="ex: 2.5",
         width=300,
@@ -35,91 +33,63 @@ def LocaisNovaView(page: ft.Page):
         keyboard_type=ft.KeyboardType.NUMBER,
     )
 
-    descricao = ft.TextField(
-        label="Descrição (opcional)",
-        multiline=True,
-        max_lines=3,
-        width=300,
-        border_color="#097A12",
+    txt_desc = ft.TextField(
+        label="Descrição (opcional)", multiline=True, max_lines=3, width=300
     )
 
     # --- Lógica de Salvar ---
-    def salvar_local(e):
-        if not nome.value:
-            page.snack_bar = ft.SnackBar(
-                ft.Text("Nome é obrigatório!"), bgcolor=ft.Colors.RED_ACCENT_700
-            )
-            page.snack_bar.open = True
-            page.update()
+    def salvar(e):
+        if not txt_nome.value:
+            page.open(ft.SnackBar(ft.Text("Nome é obrigatório!"), bgcolor="red"))
             return
 
-        novo_local = Local(
-            nome=nome.value,
-            tipo=tipo.value or "outro",
-            area_m2=float(area.value) if area.value else 0.0,
-            descricao=descricao.value or None,
-        )
-
         try:
+            novo_local = Local(
+                nome=txt_nome.value,
+                tipo=dd_tipo.value or "Outro",
+                area_m2=float(txt_area.value) if txt_area.value else 0.0,
+                descricao=txt_desc.value,
+            )
+
             db.add_local(novo_local)
-            page.snack_bar = ft.SnackBar(
-                ft.Text("✅ Local cadastrado!"), bgcolor=ft.Colors.GREEN_ACCENT_700
+            page.open(
+                ft.SnackBar(ft.Text("Local cadastrado com sucesso!"), bgcolor="green")
             )
-            page.snack_bar.open = True
             page.go("/locais")
-        except ValueError as ve:
-            page.snack_bar = ft.SnackBar(
-                ft.Text(f"⚠️ {str(ve)}"), bgcolor=ft.Colors.ORANGE_ACCENT_700
-            )
-            page.snack_bar.open = True
-            page.update()
-        except Exception as e:
-            page.snack_bar = ft.SnackBar(
-                ft.Text(f"❌ Erro: {str(e)}"), bgcolor=ft.Colors.RED_ACCENT_700
-            )
-            page.snack_bar.open = True
-            page.update()
 
-    # Botão Salvar
-    botao_salvar = ft.ElevatedButton(
-        content=ft.Row(
-            [ft.Icon(ft.Icons.SAVE, size=20), ft.Text("Salvar Local", size=16)],
-            spacing=8,
-            alignment=ft.MainAxisAlignment.CENTER,
-        ),
-        bgcolor="#097A12",
-        color=ft.Colors.WHITE,
-        width=300,
-        height=50,
-        on_click=salvar_local,
-        style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=8)),
-    )
+        except ValueError:
+            page.open(
+                ft.SnackBar(
+                    ft.Text("Área deve ser um número (use ponto para decimais)."),
+                    bgcolor="red",
+                )
+            )
+        except Exception as ex:
+            page.open(ft.SnackBar(ft.Text(f"Erro: {ex}"), bgcolor="red"))
 
-    # --- MONTAGEM DO CARD ---
-    # 2. Agrupar campos numa Coluna
-    conteudo_form = ft.Column(
+    # Layout do Conteúdo
+    conteudo = ft.Column(
         controls=[
-            nome,
-            tipo,
-            area,
-            descricao,
-            ft.Container(height=20),
-            botao_salvar,
+            txt_nome,
+            dd_tipo,
+            txt_area,
+            txt_desc,
+            ft.Divider(height=10, color="transparent"),
+            ft.ElevatedButton(
+                text="Salvar Local",
+                on_click=salvar,
+                bgcolor="#097A12",
+                color="white",
+                width=300,
+                height=45,
+            ),
         ],
-        spacing=16,
+        spacing=15,
         horizontal_alignment=ft.CrossAxisAlignment.CENTER,
     )
 
-    # 3. Usar o CardPremium
-    card = CardPremium(title="Dados do Ambiente", content=conteudo_form)
-
-    return ft.Column(
-        controls=[
-            ft.Container(
-                content=card,
-                alignment=ft.alignment.center,
-                expand=True,
-            ),
-        ],
+    return ft.Container(
+        content=CardPremium(title="Dados do Ambiente", content=conteudo, width=350),
+        alignment=ft.alignment.center,
         expand=True,
     )

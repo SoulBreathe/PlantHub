@@ -1,109 +1,122 @@
 import flet as ft
 
 
-def HomeView(page: ft.Page) -> ft.Column:
-    def ir_para_rota(rota: str):
-        return lambda _: page.go(rota)
+def HomeView(page: ft.Page):
 
-    def criar_card(icono, label, cor_fundo, rota):
+    def criar_card_menu(icone, titulo, cor, rota):
         return ft.Container(
+            width=155,
+            height=150,
+            bgcolor=cor,
+            border_radius=20,
+            padding=15,
+            ink=True,
+            on_click=lambda _: page.go(rota),
+            shadow=ft.BoxShadow(
+                blur_radius=10,
+                color=ft.Colors.with_opacity(0.2, "black"),
+                offset=ft.Offset(0, 4),
+            ),
             content=ft.Column(
-                [
+                controls=[
                     ft.Container(
-                        content=ft.Icon(icono, size=40, color=ft.Colors.WHITE),
-                        alignment=ft.alignment.center,
+                        padding=10,
+                        bgcolor=ft.Colors.with_opacity(0.2, "white"),
+                        border_radius=50,
+                        content=ft.Icon(icone, size=32, color="white"),
                     ),
                     ft.Text(
-                        label,
+                        titulo,
                         size=16,
-                        weight=ft.FontWeight.W_500,
-                        color=ft.Colors.WHITE,
+                        weight=ft.FontWeight.BOLD,
+                        color="white",
                         text_align=ft.TextAlign.CENTER,
                     ),
                 ],
                 alignment=ft.MainAxisAlignment.CENTER,
                 horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                spacing=10,
-            ),
-            width=150,
-            height=150,
-            bgcolor=cor_fundo,
-            border_radius=ft.border_radius.all(15),
-            padding=ft.padding.all(10),
-            on_click=ir_para_rota(rota),
-            ink=True,
-            shadow=ft.BoxShadow(
-                spread_radius=1,
-                blur_radius=8,
-                color=ft.Colors.with_opacity(0.2, ft.Colors.BLACK),
-                offset=ft.Offset(0, 3),
+                spacing=15,
             ),
         )
 
-    # Cards
-    card_locais = criar_card(
-        icono=ft.Icons.LOCATION_ON,
-        label="Locais",
-        cor_fundo="#677d34",
-        rota="/locais",
-    )
-    card_plantas = criar_card(
-        icono=ft.Icons.LOCAL_FLORIST,
-        label="Minhas Plantas",
-        cor_fundo="#b3b300",
-        rota="/plantas",
-    )
-    card_diario = criar_card(
-        icono=ft.Icons.BOOK,
-        label="Diário",
-        cor_fundo="#677d34",
-        rota="/diario",
-    )
-    card_agenda = criar_card(
-        icono=ft.Icons.EVENT,
-        label="Agenda",
-        cor_fundo="#0000b3",
-        rota="/agenda",
-    )
-    card_diagnostico = criar_card(
-        icono=ft.Icons.HEALTH_AND_SAFETY,
-        label="Diagnóstico",
-        cor_fundo="#cc4124",
-        rota="/diagnostico",
-    )
-    card_pragas = criar_card(
-        icono=ft.Icons.BUG_REPORT,
-        label="Pragas",
-        cor_fundo="#de5f45",
-        rota="/pragas",
-    )
+    # Coluna da Esquerda
+    itens_col1 = [
+        {
+            "icon": ft.Icons.LOCATION_ON,
+            "label": "Locais",
+            "color": "#558B2F",
+            "route": "/locais",
+        },  # Verde Musgo
+        {
+            "icon": ft.Icons.BOOK,
+            "label": "Diário",
+            "color": "#8D6E63",
+            "route": "/diario",
+        },  # Marrom Terra
+        {
+            "icon": ft.Icons.HEALTH_AND_SAFETY,
+            "label": "Diagnóstico",
+            "color": "#BF360C",
+            "route": "/diagnostico",
+        },  # Terracota
+    ]
 
-    grid = ft.Row(
+    # Coluna da Direita
+    itens_col2 = [
+        {
+            "icon": ft.Icons.LOCAL_FLORIST,
+            "label": "Minhas Plantas",
+            "color": "#2E7D32",
+            "route": "/plantas",
+        },  # Verde Floresta
+        {
+            "icon": ft.Icons.EVENT,
+            "label": "Agenda",
+            "color": "#00897B",
+            "route": "/agenda",
+        },  # Verde Água
+        {
+            "icon": ft.Icons.MENU_BOOK,
+            "label": "Enciclopédia",
+            "color": "#455A64",
+            "route": "/enciclopedia",
+        },  # Azul Pedra
+    ]
+
+    # Gerar os Cards
+    coluna_esquerda = ft.Column(
         controls=[
-            ft.Column(
-                controls=[card_locais, card_diario, card_diagnostico],
-                spacing=20,
-                alignment=ft.MainAxisAlignment.CENTER,
-                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-            ),
-            ft.Column(
-                controls=[card_plantas, card_agenda, card_pragas],
-                spacing=20,
-                alignment=ft.MainAxisAlignment.CENTER,
-                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-            ),
+            criar_card_menu(i["icon"], i["label"], i["color"], i["route"])
+            for i in itens_col1
         ],
-        alignment=ft.MainAxisAlignment.CENTER,
-        spacing=40,  # espaçamento entre as colunas
+        spacing=20,
     )
 
+    coluna_direita = ft.Column(
+        controls=[
+            criar_card_menu(i["icon"], i["label"], i["color"], i["route"])
+            for i in itens_col2
+        ],
+        spacing=20,
+    )
+
+    # --- Layout Principal ---
     return ft.Column(
         controls=[
-            ft.Text("PlantHub", size=28, weight=ft.FontWeight.BOLD),
-            ft.Divider(height=10, color=ft.Colors.TRANSPARENT),
-            grid,
+            ft.Container(height=20),  # Espaço topo
+            ft.Icon(ft.Icons.YARD, size=60, color="#097A12"),
+            ft.Text("PlantHub", size=32, weight=ft.FontWeight.BOLD, color="#097A12"),
+            ft.Text("Gerencie sua horta com carinho", size=14, color="grey"),
+            ft.Container(height=20),
+            # Grid do Menu
+            ft.Row(
+                controls=[coluna_esquerda, coluna_direita],
+                alignment=ft.MainAxisAlignment.CENTER,
+                vertical_alignment=ft.CrossAxisAlignment.START,
+                spacing=20,
+            ),
         ],
-        expand=True,
-        alignment=ft.MainAxisAlignment.START,
         horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+        scroll=ft.ScrollMode.AUTO,
+        expand=True,
     )

@@ -1,4 +1,3 @@
-# models/planta_completa.py
 from dataclasses import dataclass
 from typing import Optional
 

@@ -1,14 +1,17 @@
+import os
 import sqlite3
 from typing import List, Optional
-from models.local import Local
-from models.especie import Especie
-from models.planta import Planta
-from models.diario import EntradaDiario
+
+# Imports dos Models
 from models.agenda import TarefaAgenda
+from models.diario import EntradaDiario
+from models.especie import Especie
+from models.local import Local
+from models.pergunta import PerguntaDiagnostico
+from models.planta import Planta
 from models.planta_completa import PlantaCompleta
 from models.praga import Praga
 from models.registro_praga import RegistroPraga
-from models.pergunta import PerguntaDiagnostico
 from models.resposta import RespostaDiagnostico
 
 
@@ -16,396 +19,302 @@ class DatabaseService:
     _instance: Optional["DatabaseService"] = None
     _connection: Optional[sqlite3.Connection] = None
 
-    DATABASE_PATH = "database/Horta.db"
-    SCHEMA_PATH = "database/schema.sql"
+    # Caminhos absolutos
+    DATABASE_PATH = os.path.join(os.getcwd(), "database", "Horta.db")
+    SCHEMA_PATH = os.path.join(os.getcwd(), "database", "schema.sql")
 
     def __new__(cls):
         if cls._instance is None:
             cls._instance = super(DatabaseService, cls).__new__(cls)
-            cls._instance.connect()
+            cls._instance._initialize()
         return cls._instance
+
+    def _initialize(self):
+        """Inicia conexão, cria tabelas e popula dados base se necessário."""
+        os.makedirs(os.path.dirname(self.DATABASE_PATH), exist_ok=True)
+        self.connect()
+        self._seed_initial_data()  # Popula a base fixa
 
     def connect(self) -> None:
         if self._connection is None:
             try:
-                self._connection = sqlite3.connect(self.DATABASE_PATH)
+                # check_same_thread=False é vital para Flet
+                self._connection = sqlite3.connect(
+                    self.DATABASE_PATH, check_same_thread=False
+                )
                 self._connection.execute("PRAGMA foreign_keys = ON;")
-                print("Conexão com o banco de dados estabelecida com sucesso.")
                 self._create_database()
             except sqlite3.Error as e:
-                print(f"Erro ao conectar ao banco de dados: {e}")
+                print(f"Erro BD: {e}")
                 self._connection = None
 
     def _create_database(self) -> None:
-        if self._connection:
-            try:
-                print("Verificando e criando tabelas se necessário...")
-                with open(self.SCHEMA_PATH, "r") as f:
-                    schema_script = f.read()
-                self._connection.executescript(schema_script)
-                self._connection.commit()
-                print("Tabelas criadas com sucesso.")
-            except FileNotFoundError:
-                print(f"Erro: Arquivo de schema não encontrado em {self.SCHEMA_PATH}")
-            except sqlite3.Error as e:
-                print(f"Erro ao executar o script de schema: {e}")
+        if self._connection and os.path.exists(self.SCHEMA_PATH):
+            with open(self.SCHEMA_PATH, "r", encoding="utf-8") as f:
+                self._connection.executescript(f.read())
+            self._connection.commit()
+
+    def _seed_initial_data(self):
+        """Insere dados fixos (Espécies/Pragas) se as tabelas estiverem vazias."""
+        if not self._connection:
+            return
+        cursor = self._connection.cursor()
+
+        # 1. Seed Espécies
+        cursor.execute("SELECT COUNT(*) FROM Especies")
+        if cursor.fetchone()[0] == 0:
+            print("Populando Espécies base...")
+            especies_base = [
+                (
+                    "Hortelã",
+                    "Mentha sp.",
+                    "Diária",
+                    "Sombra parcial",
+                    "Regular",
+                    "Orgânico",
+                    "Todo ano",
+                ),
+                (
+                    "Tomate",
+                    "Solanum lycopersicum",
+                    "Regular",
+                    "Sol Pleno",
+                    "Regular",
+                    "Rico em Potássio",
+                    "Primavera",
+                ),
+                (
+                    "Manjericão",
+                    "Ocimum basilicum",
+                    "Moderada",
+                    "Sol Pleno",
+                    "Poda floral",
+                    "Orgânico",
+                    "Verão",
+                ),
+            ]
+            cursor.executemany(
+                """
+                INSERT INTO Especies (nome_popular, nome_cientifico, instrucoes_rega, necessidade_sol, necessidade_poda, uso_adubos, epoca_plantio)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            """,
+                especies_base,
+            )
+            self._connection.commit()
+
+        # 2. Seed Pragas
+        cursor.execute("SELECT COUNT(*) FROM PragasDoencas")
+        if cursor.fetchone()[0] == 0:
+            print("Populando Pragas base...")
+            pragas_base = [
+                (
+                    "Pulgão",
+                    "Pequenos insetos verdes/pretos.",
+                    "Folhas amarelas e enroladas.",
+                    "Óleo de Neem.",
+                    "assets/pragas/pulgao.png",
+                ),
+                (
+                    "Cochonilha",
+                    "Manchas brancas algodonosas.",
+                    "Planta pegajosa e fraca.",
+                    "Cotonete com álcool.",
+                    "assets/pragas/cochonilha.png",
+                ),
+            ]
+            cursor.executemany(
+                """
+                INSERT INTO PragasDoencas (nome_comum, descricao, sintomas, tratamento, foto_exemplo)
+                VALUES (?, ?, ?, ?, ?)
+            """,
+                pragas_base,
+            )
+            self._connection.commit()
 
     def get_connection(self) -> sqlite3.Connection:
         if self._connection is None:
-            raise ConnectionError(
-                "A conexão com o banco de dados não foi estabelecida."
-            )
+            self.connect()
         return self._connection
 
-    def close_connection(self) -> None:
+    def close(self):
         if self._connection:
             self._connection.close()
             self._connection = None
-            print("Conexão com o banco de dados fechada.")
 
-    # === Locais ===
-    def get_all_locais(self) -> List[Local]:
+    # =========================================================================
+    #  MÉTODOS CRUD (Locais, Plantas, Agenda, etc.)
+    # =========================================================================
+
+    # --- AGENDA ---
+    def get_agenda_pendente(self) -> List[TarefaAgenda]:
         conn = self.get_connection()
         cursor = conn.cursor()
         cursor.execute(
-            """
-            SELECT id_local, nome, descricao, tipo, area_m2 
-            FROM Locais 
-            ORDER BY nome
-        """
+            "SELECT * FROM AgendaDeCuidados WHERE realizada = 0 ORDER BY data_agendada"
         )
-        return [
-            Local(
-                id_local=row[0],
-                nome=row[1],
-                descricao=row[2],
-                tipo=row[3] or "outro",
-                area_m2=row[4] or 0.0,
-            )
-            for row in cursor.fetchall()
-        ]
+        return [TarefaAgenda(*row) for row in cursor.fetchall()]
 
-    def add_local(self, local: Local) -> Local:
+    def add_tarefa_agenda(self, t: TarefaAgenda):
         conn = self.get_connection()
-        cursor = conn.cursor()
-        try:
-            cursor.execute(
-                "INSERT INTO Locais (nome, descricao, tipo, area_m2) VALUES (?, ?, ?, ?)",
-                (local.nome, local.descricao, local.tipo, local.area_m2),
-            )
-            conn.commit()
-            new_id = cursor.lastrowid
-            return Local(
-                id_local=new_id,
-                nome=local.nome,
-                descricao=local.descricao,
-                tipo=local.tipo,
-                area_m2=local.area_m2,
-            )
-        except sqlite3.IntegrityError as e:
-            if "UNIQUE" in str(e):
-                raise ValueError(f"Local '{local.nome}' já existe.")
-            raise
+        cur = conn.cursor()
+        cur.execute(
+            """
+            INSERT INTO AgendaDeCuidados (tipo_tarefa, detalhes, data_agendada, realizada, id_planta)
+            VALUES (?, ?, ?, ?, ?)""",
+            (t.tipo_tarefa, t.detalhes, t.data_agendada, int(t.realizada), t.id_planta),
+        )
+        conn.commit()
+        t.id_agenda = cur.lastrowid
 
-    # === Espécies ===
+    def marcar_tarefa_realizada(self, id_agenda: int):
+        self.get_connection().execute(
+            "UPDATE AgendaDeCuidados SET realizada = 1 WHERE id_agenda = ?",
+            (id_agenda,),
+        ).commit()
+
+    # --- DIAGNÓSTICO ---
+    def get_pergunta_por_ordem(self, ordem: int) -> Optional[PerguntaDiagnostico]:
+        cur = self.get_connection().cursor()
+        cur.execute("SELECT * FROM DiagnosticoPerguntas WHERE ordem = ?", (ordem,))
+        row = cur.fetchone()
+        return PerguntaDiagnostico(*row) if row else None
+
+    def get_respostas_por_pergunta(self, id_pergunta: int) -> List[RespostaDiagnostico]:
+        cur = self.get_connection().cursor()
+        cur.execute(
+            "SELECT * FROM DiagnosticoRespostas WHERE id_pergunta = ?", (id_pergunta,)
+        )
+        return [RespostaDiagnostico(*r) for r in cur.fetchall()]
+
+    def verificar_diagnostico(self, id_resposta: int) -> Optional[Praga]:
+        cur = self.get_connection().cursor()
+        cur.execute(
+            """
+            SELECT p.* FROM DiagnosticoMapeamento m
+            JOIN PragasDoencas p ON m.id_praga = p.id_praga
+            WHERE m.id_resposta = ?
+        """,
+            (id_resposta,),
+        )
+        row = cur.fetchone()
+        return Praga(*row) if row else None
+
+    # --- DIÁRIO ---
+    def get_diario_por_planta(self, id_planta: int) -> List[EntradaDiario]:
+        cur = self.get_connection().cursor()
+        cur.execute(
+            "SELECT * FROM DiarioDePlanta WHERE id_planta = ? ORDER BY data_registro DESC",
+            (id_planta,),
+        )
+        return [EntradaDiario(*r) for r in cur.fetchall()]
+
+    def add_entrada_diario(self, d: EntradaDiario):
+        conn = self.get_connection()
+        cur = conn.cursor()
+        cur.execute(
+            "INSERT INTO DiarioDePlanta (data_registro, observacao, caminho_foto, id_planta) VALUES (?, ?, ?, ?)",
+            (d.data_registro, d.observacao, d.caminho_foto, d.id_planta),
+        )
+        conn.commit()
+
+    # --- ESPÉCIES ---
     def get_all_especies(self) -> List[Especie]:
-        conn = self.get_connection()
-        cursor = conn.cursor()
-        cursor.execute(
-            """
-            SELECT id_especie, nome_popular, nome_cientifico, instrucoes_rega,
-                   necessidade_sol, necessidade_poda, uso_adubos, epoca_plantio
-            FROM Especies
-            ORDER BY nome_popular
-        """
-        )
-        return [
-            Especie(
-                id_especie=row[0],
-                nome_popular=row[1],
-                nome_cientifico=row[2],
-                instrucoes_rega=row[3],
-                necessidade_sol=row[4],
-                necessidade_poda=row[5],
-                uso_adubos=row[6],
-                epoca_plantio=row[7],
-            )
-            for row in cursor.fetchall()
-        ]
+        cur = self.get_connection().cursor()
+        cur.execute("SELECT * FROM Especies ORDER BY nome_popular")
+        return [Especie(*r) for r in cur.fetchall()]
 
-    def add_especie(self, especie: Especie) -> Especie:
+    def add_especie(self, e: Especie):
         conn = self.get_connection()
-        cursor = conn.cursor()
         try:
-            cursor.execute(
+            cur = conn.cursor()
+            cur.execute(
                 """
-                INSERT INTO Especies (
-                    nome_popular, nome_cientifico, instrucoes_rega,
-                    necessidade_sol, necessidade_poda, uso_adubos, epoca_plantio
-                ) VALUES (?, ?, ?, ?, ?, ?, ?)
-            """,
+                INSERT INTO Especies (nome_popular, nome_cientifico, instrucoes_rega, necessidade_sol, necessidade_poda, uso_adubos, epoca_plantio)
+                VALUES (?, ?, ?, ?, ?, ?, ?)""",
                 (
-                    especie.nome_popular,
-                    especie.nome_cientifico,
-                    especie.instrucoes_rega,
-                    especie.necessidade_sol,
-                    especie.necessidade_poda,
-                    especie.uso_adubos,
-                    especie.epoca_plantio,
+                    e.nome_popular,
+                    e.nome_cientifico,
+                    e.instrucoes_rega,
+                    e.necessidade_sol,
+                    e.necessidade_poda,
+                    e.uso_adubos,
+                    e.epoca_plantio,
                 ),
             )
             conn.commit()
-            new_id = cursor.lastrowid
-            return Especie(
-                id_especie=new_id,
-                nome_popular=especie.nome_popular,
-                nome_cientifico=especie.nome_cientifico,
-                instrucoes_rega=especie.instrucoes_rega,
-                necessidade_sol=especie.necessidade_sol,
-                necessidade_poda=especie.necessidade_poda,
-                uso_adubos=especie.uso_adubos,
-                epoca_plantio=especie.epoca_plantio,
-            )
-        except sqlite3.IntegrityError as e:
-            if "UNIQUE" in str(e):
-                raise ValueError(f"Espécie '{especie.nome_popular}' já existe.")
-            raise
+            e.id_especie = cur.lastrowid
+        except sqlite3.IntegrityError:
+            raise ValueError(f"Espécie '{e.nome_popular}' já existe.")
 
-    # === MinhasPlantas ===
+    # --- LOCAIS ---
+    def get_all_locais(self) -> List[Local]:
+        cur = self.get_connection().cursor()
+        cur.execute("SELECT * FROM Locais ORDER BY nome")
+        return [Local(*r) for r in cur.fetchall()]
+
+    def add_local(self, l: Local):
+        conn = self.get_connection()
+        try:
+            cur = conn.cursor()
+            cur.execute(
+                "INSERT INTO Locais (nome, descricao, tipo, area_m2) VALUES (?, ?, ?, ?)",
+                (l.nome, l.descricao, l.tipo, l.area_m2),
+            )
+            conn.commit()
+            l.id_local = cur.lastrowid
+        except sqlite3.IntegrityError:
+            raise ValueError(f"Local '{l.nome}' já existe.")
+
+    # --- PLANTAS ---
     def get_all_plantas(self) -> List[Planta]:
-        conn = self.get_connection()
-        cursor = conn.cursor()
-        cursor.execute(
-            """
-            SELECT id_planta, nome_personalizado, data_plantio, id_especie, id_local
-            FROM MinhasPlantas
-            ORDER BY nome_personalizado
-        """
-        )
-        return [
-            Planta(
-                id_planta=row[0],
-                nome_personalizado=row[1],
-                data_plantio=row[2],
-                id_especie=row[3],
-                id_local=row[4],
-            )
-            for row in cursor.fetchall()
-        ]
-
-    def add_planta(self, planta: Planta) -> Planta:
-        conn = self.get_connection()
-        cursor = conn.cursor()
-        cursor.execute(
-            """
-            INSERT INTO MinhasPlantas (nome_personalizado, data_plantio, id_especie, id_local)
-            VALUES (?, ?, ?, ?)
-        """,
-            (
-                planta.nome_personalizado,
-                planta.data_plantio,
-                planta.id_especie,
-                planta.id_local,
-            ),
-        )
-        conn.commit()
-        new_id = cursor.lastrowid
-        return Planta(
-            id_planta=new_id,
-            nome_personalizado=planta.nome_personalizado,
-            data_plantio=planta.data_plantio,
-            id_especie=planta.id_especie,
-            id_local=planta.id_local,
-        )
+        cur = self.get_connection().cursor()
+        cur.execute("SELECT * FROM MinhasPlantas ORDER BY nome_personalizado")
+        return [Planta(*r) for r in cur.fetchall()]
 
     def get_plantas_completas(self) -> List[PlantaCompleta]:
-        conn = self.get_connection()
-        cursor = conn.cursor()
-        cursor.execute(
+        cur = self.get_connection().cursor()
+        cur.execute(
             """
-            SELECT 
-                mp.id_planta,
-                mp.nome_personalizado,
-                e.nome_popular,
-                l.nome AS nome_local,
-                mp.data_plantio
+            SELECT mp.id_planta, mp.nome_personalizado, e.nome_popular, l.nome, mp.data_plantio
             FROM MinhasPlantas mp
             LEFT JOIN Especies e ON mp.id_especie = e.id_especie
             LEFT JOIN Locais l ON mp.id_local = l.id_local
             ORDER BY mp.nome_personalizado ASC
         """
         )
-        rows = cursor.fetchall()
+        # Nota: Ajuste os índices aqui se PlantaCompleta tiver campos diferentes dos retornados
         return [
             PlantaCompleta(
-                id_planta=row[0],
-                nome_personalizado=row[1],
-                nome_popular=row[2] or "—",
-                nome_local=row[3] or "—",
-                data_plantio=row[4],
+                id_planta=r[0],
+                nome_personalizado=r[1],
+                nome_popular=r[2] or "-",
+                nome_local=r[3] or "-",
+                data_plantio=r[4],
             )
-            for row in rows
+            for r in cur.fetchall()
         ]
 
-    # === Diário ===
-    def get_diario_por_planta(self, id_planta: int) -> List[EntradaDiario]:
+    def add_planta(self, p: Planta):
         conn = self.get_connection()
-        cursor = conn.cursor()
-        cursor.execute(
-            """
-            SELECT id_diario, data_registro, observacao, caminho_foto, id_planta
-            FROM DiarioDePlanta
-            WHERE id_planta = ?
-            ORDER BY data_registro DESC
-        """,
-            (id_planta,),
-        )
-        return [
-            EntradaDiario(
-                id_diario=row[0],
-                data_registro=row[1],
-                observacao=row[2],
-                caminho_foto=row[3],
-                id_planta=row[4],
-            )
-            for row in cursor.fetchall()
-        ]
-
-    def add_entrada_diario(self, entrada: EntradaDiario) -> EntradaDiario:
-        conn = self.get_connection()
-        cursor = conn.cursor()
-        cursor.execute(
-            """
-            INSERT INTO DiarioDePlanta (data_registro, observacao, caminho_foto, id_planta)
-            VALUES (?, ?, ?, ?)
-        """,
-            (
-                entrada.data_registro,
-                entrada.observacao,
-                entrada.caminho_foto,
-                entrada.id_planta,
-            ),
+        cur = conn.cursor()
+        cur.execute(
+            "INSERT INTO MinhasPlantas (nome_personalizado, data_plantio, id_especie, id_local) VALUES (?, ?, ?, ?)",
+            (p.nome_personalizado, p.data_plantio, p.id_especie, p.id_local),
         )
         conn.commit()
-        new_id = cursor.lastrowid
-        return EntradaDiario(
-            id_diario=new_id,
-            data_registro=entrada.data_registro,
-            observacao=entrada.observacao,
-            caminho_foto=entrada.caminho_foto,
-            id_planta=entrada.id_planta,
-        )
+        p.id_planta = cur.lastrowid
 
-    # === Agenda ===
-    def get_agenda_pendente(self) -> List[TarefaAgenda]:
-        conn = self.get_connection()
-        cursor = conn.cursor()
-        cursor.execute(
-            """
-            SELECT id_agenda, tipo_tarefa, detalhes, data_agendada, realizada, id_planta
-            FROM AgendaDeCuidados
-            WHERE realizada = 0
-            ORDER BY data_agendada
-        """
-        )
-        return [
-            TarefaAgenda(
-                id_agenda=row[0],
-                tipo_tarefa=row[1],
-                detalhes=row[2],
-                data_agendada=row[3],
-                realizada=bool(row[4]),
-                id_planta=row[5],
-            )
-            for row in cursor.fetchall()
-        ]
-
-    def add_tarefa_agenda(self, tarefa: TarefaAgenda) -> TarefaAgenda:
-        conn = self.get_connection()
-        cursor = conn.cursor()
-        cursor.execute(
-            """
-            INSERT INTO AgendaDeCuidados (tipo_tarefa, detalhes, data_agendada, realizada, id_planta)
-            VALUES (?, ?, ?, ?, ?)
-        """,
-            (
-                tarefa.tipo_tarefa,
-                tarefa.detalhes,
-                tarefa.data_agendada,
-                int(tarefa.realizada),
-                tarefa.id_planta,
-            ),
-        )
-        conn.commit()
-        new_id = cursor.lastrowid
-        return TarefaAgenda(
-            id_agenda=new_id,
-            tipo_tarefa=tarefa.tipo_tarefa,
-            detalhes=tarefa.detalhes,
-            data_agendada=tarefa.data_agendada,
-            realizada=tarefa.realizada,
-            id_planta=tarefa.id_planta,
-        )
-
-    # === Pragas ===
+    # --- PRAGAS & REGISTROS ---
     def get_all_pragas(self) -> List[Praga]:
-        conn = self.get_connection()
-        cursor = conn.cursor()
-        cursor.execute(
-            """
-            SELECT id_praga, nome_comum, descricao, sintomas, tratamento
-            FROM PragasDoencas
-            ORDER BY nome_comum
-        """
-        )
-        return [
-            Praga(
-                id_praga=row[0],
-                nome_comum=row[1],
-                descricao=row[2],
-                sintomas=row[3],
-                tratamento=row[4],
-            )
-            for row in cursor.fetchall()
-        ]
+        cur = self.get_connection().cursor()
+        cur.execute("SELECT * FROM PragasDoencas ORDER BY nome_comum")
+        return [Praga(*r) for r in cur.fetchall()]
 
-    # === Diagnóstico ===
-    def get_perguntas_ordenadas(self) -> List[PerguntaDiagnostico]:
+    def add_registro_praga(self, r: RegistroPraga):
         conn = self.get_connection()
-        cursor = conn.cursor()
-        cursor.execute(
-            """
-            SELECT id_pergunta, text_pergunta, ordem
-            FROM DiagnosticoPerguntas
-            ORDER BY ordem
-        """
+        cur = conn.cursor()
+        cur.execute(
+            "INSERT INTO RegistroDePragas (data_identificacao, status_tratamento, id_planta, id_praga) VALUES (?, ?, ?, ?)",
+            (r.data_identificacao, r.status_tratamento, r.id_planta, r.id_praga),
         )
-        return [
-            PerguntaDiagnostico(
-                id_pergunta=row[0],
-                texto_pergunta=row[1],
-                ordem=row[2],
-            )
-            for row in cursor.fetchall()
-        ]
-
-    def get_respostas_por_pergunta(self, id_pergunta: int) -> List[RespostaDiagnostico]:
-        conn = self.get_connection()
-        cursor = conn.cursor()
-        cursor.execute(
-            """
-            SELECT id_resposta, texto_resposta, id_pergunta
-            FROM DiagnosticoRespostas
-            WHERE id_pergunta = ?
-            ORDER BY id_resposta
-        """,
-            (id_pergunta,),
-        )
-        return [
-            RespostaDiagnostico(
-                id_resposta=row[0],
-                texto_resposta=row[1],
-                id_pergunta=row[2],
-            )
-            for row in cursor.fetchall()
-        ]
+        conn.commit()

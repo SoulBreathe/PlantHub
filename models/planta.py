@@ -4,8 +4,10 @@ from typing import Optional
 
 @dataclass
 class Planta:
-    nome_personalizado: str
+    id_planta: Optional[int] = None
+    nome_personalizado: str = ""
     data_plantio: Optional[str] = None
     id_especie: int = 0
     id_local: int = 0
-    id_planta: Optional[int] = None
+    status: str = "ativa"
+    foto_principal: Optional[str] = None

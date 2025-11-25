@@ -2,76 +2,71 @@ import flet as ft
 from services.database_service import DatabaseService
 
 
-def criar_card(local):
-    icon_map = {
-        "jardim": (ft.Icons.PARK, ft.Colors.GREEN),
-        "varanda": (ft.Icons.BALCONY, ft.Colors.ORANGE),
-        "estufa": (ft.Icons.HOUSE, ft.Colors.BLUE),
-        "horta": (ft.Icons.GARDEN_CART, ft.Colors.BROWN),
-    }
-    icono, cor = icon_map.get(
-        local.tipo.lower(), (ft.Icons.LOCATION_ON, ft.Colors.GREY)
-    )
+def LocaisView(page: ft.Page):
+    db = DatabaseService()
+    locais = db.get_all_locais()
 
-    return ft.Card(
-        content=ft.Container(
+    def criar_card_local(local):
+        # Mapeia ícone e cor baseado no tipo do local
+        mapa_estilo = {
+            "jardim": (ft.Icons.PARK, ft.Colors.GREEN),
+            "varanda": (ft.Icons.BALCONY, ft.Colors.ORANGE),
+            "estufa": (ft.Icons.HOUSE_SIDING, ft.Colors.BLUE),
+            "horta": (ft.Icons.AGRICULTURE, ft.Colors.BROWN),
+            "interno": (ft.Icons.HOME, "#097A12"),
+        }
+
+        # Busca o estilo ou usa padrão (Cinza)
+        icone, cor = mapa_estilo.get(
+            local.tipo.lower(), (ft.Icons.LOCATION_ON, ft.Colors.GREY)
+        )
+
+        return ft.Container(
+            padding=5,
+            bgcolor="white",
+            border_radius=12,
+            margin=ft.margin.only(bottom=10),
+            shadow=ft.BoxShadow(blur_radius=5, color=ft.Colors.BLACK12),
             content=ft.Column(
-                [
+                controls=[
                     ft.ListTile(
-                        leading=ft.Icon(icono, color=cor, size=36),
-                        title=ft.Text(local.nome, weight=ft.FontWeight.BOLD, size=18),
+                        leading=ft.Icon(icone, color=cor, size=32),
+                        title=ft.Text(local.nome, weight=ft.FontWeight.BOLD, size=16),
                         subtitle=ft.Text(
-                            f"{local.tipo.title()} • {local.area_m2:.1f} m²",
-                            color=ft.Colors.GREY_700,
+                            f"{local.tipo} • {local.area_m2} m²", size=12, color="grey"
                         ),
                     ),
                     ft.Container(
-                        padding=ft.padding.only(left=16, right=16, bottom=8),
+                        padding=ft.padding.only(left=16, right=16, bottom=10),
                         content=ft.Text(
-                            local.descricao or "Sem descrição",
-                            size=13,
-                            color=ft.Colors.GREY_600,
+                            local.descricao or "Sem descrição adicional.",
+                            size=12,
+                            color=ft.Colors.GREY_700,
+                            max_lines=2,
+                            overflow=ft.TextOverflow.ELLIPSIS,
                         ),
                     ),
                 ],
                 spacing=0,
             ),
-            padding=ft.padding.all(0),
-        ),
-        elevation=2,
-    )
+        )
 
-
-def LocaisView(page: ft.Page):
-    db = DatabaseService()
-    try:
-        locais = db.get_all_locais()
-    except Exception as e:
-        print(f"Erro ao carregar locais: {e}")
-        locais = []
-
-    cards = [criar_card(local) for local in locais] or [
-        ft.Container(
-            content=ft.Column(
-                [
-                    ft.Icon(ft.Icons.INFO_OUTLINE, size=64, color=ft.Colors.GREY_400),
-                    ft.Text("Nenhum local cadastrado", size=20),
-                    ft.Text("Adicione seus espaços de cultivo!", size=14),
-                ],
-                alignment=ft.MainAxisAlignment.CENTER,
-                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-            ),
+    # --- Estado Vazio ---
+    if not locais:
+        return ft.Column(
+            controls=[
+                ft.Icon(ft.Icons.ADD_LOCATION_ALT, size=64, color="#097A12"),
+                ft.Text("Nenhum local cadastrado", size=18, weight=ft.FontWeight.BOLD),
+                ft.Text("Adicione onde você cultiva suas plantas.", color="grey"),
+            ],
+            alignment=ft.MainAxisAlignment.CENTER,
+            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
             expand=True,
         )
-    ]
 
-    return ft.Column(
-        controls=[
-            ft.ListView(
-                controls=cards,
-                expand=True,
-                padding=ft.padding.all(10),
-            ),
-        ],
+    # --- Lista de Locais ---
+    return ft.ListView(
+        controls=[criar_card_local(l) for l in locais],
+        padding=15,
         expand=True,
     )

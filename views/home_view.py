@@ -1,12 +1,18 @@
 import flet as ft
+from services.database_service import DatabaseService
 
 
 def HomeView(page: ft.Page):
+    db = DatabaseService()
 
-    def criar_card_menu(icone, titulo, cor, rota):
+    # Busca os dados atualizados do banco
+    stats = db.get_resumo_dashboard()
+
+    # Função do card atualizada para aceitar "info_extra"
+    def criar_card_menu(icone, titulo, info_extra, cor, rota):
         return ft.Container(
             width=155,
-            height=150,
+            height=160,  # Um pouquinho mais alto para caber o texto extra
             bgcolor=cor,
             border_radius=20,
             padding=15,
@@ -20,45 +26,63 @@ def HomeView(page: ft.Page):
             content=ft.Column(
                 controls=[
                     ft.Container(
-                        padding=10,
+                        padding=8,
                         bgcolor=ft.Colors.with_opacity(0.2, "white"),
                         border_radius=50,
-                        content=ft.Icon(icone, size=32, color="white"),
+                        content=ft.Icon(icone, size=28, color="white"),
                     ),
-                    ft.Text(
-                        titulo,
-                        size=16,
-                        weight=ft.FontWeight.BOLD,
-                        color="white",
-                        text_align=ft.TextAlign.CENTER,
+                    ft.Column(
+                        [
+                            ft.Text(
+                                titulo,
+                                size=15,
+                                weight=ft.FontWeight.BOLD,
+                                color="white",
+                                text_align=ft.TextAlign.CENTER,
+                            ),
+                            # AQUI ESTÁ A MÁGICA DO DASHBOARD 👇
+                            ft.Text(
+                                info_extra,
+                                size=12,
+                                color=ft.Colors.WHITE70,
+                                text_align=ft.TextAlign.CENTER,
+                            ),
+                        ],
+                        spacing=2,
+                        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                     ),
                 ],
                 alignment=ft.MainAxisAlignment.CENTER,
                 horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                spacing=15,
+                spacing=10,
             ),
         )
+
+    # --- Configuração do Menu com Dados Reais ---
 
     # Coluna da Esquerda
     itens_col1 = [
         {
             "icon": ft.Icons.LOCATION_ON,
             "label": "Locais",
+            "info": f"{stats['locais']} ambientes",  # <--- Dinâmico
             "color": "#558B2F",
             "route": "/locais",
-        },  # Verde Musgo
+        },
         {
             "icon": ft.Icons.BOOK,
             "label": "Diário",
+            "info": f"{stats['diario']} registros",  # <--- Dinâmico
             "color": "#8D6E63",
             "route": "/diario",
-        },  # Marrom Terra
+        },
         {
             "icon": ft.Icons.HEALTH_AND_SAFETY,
             "label": "Diagnóstico",
+            "info": "Identificar",
             "color": "#BF360C",
             "route": "/diagnostico",
-        },  # Terracota
+        },
     ]
 
     # Coluna da Direita
@@ -66,27 +90,30 @@ def HomeView(page: ft.Page):
         {
             "icon": ft.Icons.LOCAL_FLORIST,
             "label": "Minhas Plantas",
+            "info": f"{stats['plantas']} ativas",  # <--- Dinâmico
             "color": "#2E7D32",
             "route": "/plantas",
-        },  # Verde Floresta
+        },
         {
             "icon": ft.Icons.EVENT,
             "label": "Agenda",
+            "info": f"{stats['agenda']} pendentes",  # <--- Dinâmico (Muito útil!)
             "color": "#00897B",
             "route": "/agenda",
-        },  # Verde Água
+        },
         {
             "icon": ft.Icons.MENU_BOOK,
             "label": "Enciclopédia",
+            "info": "Consultar",
             "color": "#455A64",
             "route": "/enciclopedia",
-        },  # Azul Pedra
+        },
     ]
 
     # Gerar os Cards
     coluna_esquerda = ft.Column(
         controls=[
-            criar_card_menu(i["icon"], i["label"], i["color"], i["route"])
+            criar_card_menu(i["icon"], i["label"], i["info"], i["color"], i["route"])
             for i in itens_col1
         ],
         spacing=20,
@@ -94,7 +121,7 @@ def HomeView(page: ft.Page):
 
     coluna_direita = ft.Column(
         controls=[
-            criar_card_menu(i["icon"], i["label"], i["color"], i["route"])
+            criar_card_menu(i["icon"], i["label"], i["info"], i["color"], i["route"])
             for i in itens_col2
         ],
         spacing=20,
@@ -103,12 +130,23 @@ def HomeView(page: ft.Page):
     # --- Layout Principal ---
     return ft.Column(
         controls=[
-            ft.Container(height=20),  # Espaço topo
+            ft.Container(height=20),
             ft.Icon(ft.Icons.YARD, size=60, color="#097A12"),
             ft.Text("PlantHub", size=32, weight=ft.FontWeight.BOLD, color="#097A12"),
-            ft.Text("Gerencie sua horta com carinho", size=14, color="grey"),
+            # Mensagem de boas-vindas dinâmica
+            ft.Text(
+                (
+                    f"Você tem {stats['agenda']} tarefas hoje."
+                    if stats["agenda"] > 0
+                    else "Tudo tranquilo por aqui!"
+                ),
+                size=14,
+                color="grey" if stats["agenda"] == 0 else "#097A12",
+                weight=(
+                    ft.FontWeight.BOLD if stats["agenda"] > 0 else ft.FontWeight.NORMAL
+                ),
+            ),
             ft.Container(height=20),
-            # Grid do Menu
             ft.Row(
                 controls=[coluna_esquerda, coluna_direita],
                 alignment=ft.MainAxisAlignment.CENTER,

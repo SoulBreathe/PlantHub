@@ -11,6 +11,7 @@ from views.locais_novo_view import LocaisNovaView
 # --- PLANTAS ---
 from views.plantas_view import MinhasPlantasView
 from views.plantas_novo_view import PlantaNovaView
+from views.plantas_editar_view import PlantaEditarView
 
 # --- DIÁRIO ---
 from views.diario_view import DiarioView
@@ -19,6 +20,7 @@ from views.diario_novo_view import DiarioNovoView
 # --- AGENDA ---
 from views.agenda_view import AgendaView
 from views.agenda_novo_view import AgendaNovoView
+from views.agenda_editar_view import AgendaEditarView
 
 # --- ENCICLOPÉDIA ---
 from views.enciclopedia_view import EnciclopediaView
@@ -122,7 +124,6 @@ def main(page: ft.Page):
         # --- LOCAIS ---
         elif page.route == "/locais":
             content = LocaisView(page)
-            # CORREÇÃO AQUI: ft.Icons.PLACE (Maiúsculo)
             appbar = criar_appbar(
                 page,
                 "Meus Locais",
@@ -150,6 +151,12 @@ def main(page: ft.Page):
             content = PlantaNovaView(page)
             appbar = criar_appbar(
                 page, "Nova Planta", ft.Icons.ADD, voltar_para="/plantas"
+            )
+
+        elif page.route.startswith("/plantas/editar/"):
+            content = PlantaEditarView(page)
+            appbar = criar_appbar(
+                page, "Editar Planta", ft.Icons.EDIT, voltar_para="/plantas"
             )
 
         # --- DIÁRIO ---
@@ -182,6 +189,12 @@ def main(page: ft.Page):
             content = AgendaNovoView(page)
             appbar = criar_appbar(
                 page, "Agendar Tarefa", ft.Icons.EVENT_AVAILABLE, voltar_para="/agenda"
+            )
+
+        elif page.route.startswith("/agenda/editar/"):
+            content = AgendaEditarView(page)
+            appbar = criar_appbar(
+                page, "Editar Tarefa", ft.Icons.EDIT, voltar_para="/agenda"
             )
 
         # --- ENCICLOPÉDIA ---
@@ -222,12 +235,6 @@ def main(page: ft.Page):
                 page, "Resultado", ft.Icons.CHECK_CIRCLE, voltar_para="/diagnostico"
             )
 
-        # --- PLACEHOLDERS PARA EDIÇÃO (Evita erro 404 ao clicar no lápis) ---
-        elif "/editar/" in page.route:
-            content = ft.Text("Funcionalidade de Edição em breve!", size=20)
-            appbar = criar_appbar(page, "Em Construção", voltar_para="/")
-
-        # --- ERRO ---
         else:
             content = ft.Text("Página não encontrada")
             appbar = criar_appbar(page, "Erro 404", voltar_para="/")

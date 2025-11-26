@@ -5,35 +5,59 @@ from services.database_service import DatabaseService
 def DiarioView(page: ft.Page):
     db = DatabaseService()
 
-    # Busca plantas e cria mapa de nomes
-    plantas = db.get_all_plantas()
-    mapa_nomes = {p.id_planta: p.nome_personalizado for p in plantas}
+    def abrir_foto(caminho_bruto):
+        if not caminho_bruto:
+            return
+        caminho_corrigido = caminho_bruto.replace("\\", "/")
 
-    # Agrega entradas de todas as plantas
-    todas_entradas = []
-    for p in plantas:
-        entradas = db.get_diario_por_planta(p.id_planta)
-        for ent in entradas:
-            ent.nome_planta_visual = mapa_nomes.get(ent.id_planta, "-")
-            todas_entradas.append(ent)
+        img = ft.Image(
+            src=caminho_corrigido,
+            width=600,
+            height=400,
+            fit=ft.ImageFit.CONTAIN,
+            error_content=ft.Column(
+                [
+                    ft.Icon(ft.Icons.BROKEN_IMAGE, color="grey"),
+                    ft.Text("Erro ao carregar imagem", color="grey"),
+                ],
+                alignment=ft.MainAxisAlignment.CENTER,
+            ),
+        )
 
-    todas_entradas.sort(key=lambda x: x.data_registro, reverse=True)
+        dlg = ft.AlertDialog(
+            content=ft.Container(content=img, alignment=ft.alignment.center),
+            actions=[ft.TextButton("Fechar", on_click=lambda e: page.close(dlg))],
+            actions_alignment=ft.MainAxisAlignment.END,
+        )
+        page.open(dlg)
 
     def criar_card_diario(entrada):
         dia = entrada.data_registro[8:10]
         mes = entrada.data_registro[5:7]
-        tem_foto = entrada.caminho_foto is not None
+        tem_foto = bool(entrada.caminho_foto)
+
+        botao_foto = ft.Icon(ft.Icons.NO_PHOTOGRAPHY, color=ft.Colors.GREY_300, size=20)
+        if tem_foto:
+            botao_foto = ft.IconButton(
+                icon=ft.Icons.PHOTO_CAMERA,
+                icon_color="white",
+                bgcolor="#097A12",
+                icon_size=20,
+                tooltip="Ver foto",
+                on_click=lambda _: abrir_foto(entrada.caminho_foto),
+            )
 
         return ft.Container(
             padding=15,
             bgcolor="white",
             border_radius=12,
-            shadow=ft.BoxShadow(blur_radius=8, color=ft.Colors.BLACK12),
+            margin=ft.margin.only(bottom=10),
+            shadow=ft.BoxShadow(blur_radius=5, color=ft.Colors.BLACK12),
+            border=ft.border.all(1, "#f0f0f0"),
             content=ft.Row(
                 [
-                    # Coluna Data
                     ft.Column(
-                        controls=[
+                        [
                             ft.Text(
                                 dia, size=20, weight=ft.FontWeight.BOLD, color="#097A12"
                             ),
@@ -43,43 +67,26 @@ def DiarioView(page: ft.Page):
                         spacing=0,
                     ),
                     ft.VerticalDivider(width=15, color="#eeeeee"),
-                    # Coluna Conteúdo
                     ft.Column(
-                        controls=[
-                            ft.Text(
-                                entrada.titulo or "Sem título",
-                                weight=ft.FontWeight.BOLD,
-                                size=16,
-                                color="#333333",
-                            ),
+                        [
                             ft.Row(
                                 [
-                                    ft.Icon(
-                                        ft.Icons.LOCAL_FLORIST, size=14, color="grey"
-                                    ),
                                     ft.Text(
-                                        getattr(entrada, "nome_planta_visual", "-"),
-                                        size=12,
-                                        color="grey",
+                                        entrada.titulo or "Sem título",
+                                        weight=ft.FontWeight.BOLD,
+                                        size=15,
+                                        color="#333333",
                                     ),
-                                    # Ícone condicional se tiver foto
-                                    (
-                                        ft.Icon(
-                                            ft.Icons.PHOTO_CAMERA,
-                                            size=14,
-                                            color="#097A12",
-                                        )
-                                        if tem_foto
-                                        else ft.Container()
-                                    ),
-                                ]
+                                    botao_foto,
+                                ],
+                                alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                             ),
                             ft.Text(
                                 entrada.observacao,
-                                max_lines=2,
+                                max_lines=3,
                                 overflow=ft.TextOverflow.ELLIPSIS,
                                 size=13,
-                                color="#444444",
+                                color="#555555",
                             ),
                         ],
                         expand=True,
@@ -88,22 +95,58 @@ def DiarioView(page: ft.Page):
             ),
         )
 
-    # --- Estado Vazio ---
-    if not todas_entradas:
+    plantas = db.get_all_plantas()
+    grupos_de_diario = []
+
+    for planta in plantas:
+        entradas = db.get_diario_por_planta(planta.id_planta)
+
+        if entradas:
+            grupo = ft.Container(
+                bgcolor="white",
+                border_radius=10,
+                margin=ft.margin.only(bottom=10),
+                shadow=ft.BoxShadow(blur_radius=5, color=ft.Colors.BLACK12),
+                content=ft.ExpansionTile(
+                    leading=ft.Icon(ft.Icons.LOCAL_FLORIST, color="#097A12"),
+                    title=ft.Text(
+                        planta.nome_personalizado, weight=ft.FontWeight.BOLD, size=16
+                    ),
+                    subtitle=ft.Text(
+                        f"{len(entradas)} registros", size=12, color="grey"
+                    ),
+                    initially_expanded=False,
+                    controls_padding=ft.padding.only(
+                        left=20, right=10, top=10, bottom=10
+                    ),
+                    controls=[
+                        ft.Column(
+                            controls=[criar_card_diario(e) for e in entradas], spacing=0
+                        )
+                    ],
+                ),
+            )
+            grupos_de_diario.append(grupo)
+
+    if not grupos_de_diario:
         return ft.Column(
             controls=[
                 ft.Icon(ft.Icons.BOOK_OUTLINED, size=64, color="grey"),
-                ft.Text("Seu diário está vazio.", size=16, color="grey"),
+                ft.Text(
+                    "Seu diário está vazio.",
+                    size=18,
+                    weight=ft.FontWeight.BOLD,
+                    color="#333333",
+                ),
+                ft.Text(
+                    "Comece a registrar a história das suas plantas!",
+                    size=14,
+                    color="grey",
+                ),
             ],
             alignment=ft.MainAxisAlignment.CENTER,
             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
             expand=True,
         )
 
-    # --- Lista de Registros ---
-    return ft.ListView(
-        controls=[criar_card_diario(e) for e in todas_entradas],
-        spacing=10,
-        padding=15,
-        expand=True,
-    )
+    return ft.ListView(controls=grupos_de_diario, padding=15, expand=True)

@@ -1,11 +1,9 @@
 name: 📦 Build PlantHub Windows EXE
 
 on:
-  # O build será executado quando houver um push para a branch principal
   push:
     branches:
       - main
-  # Permite executar o workflow manualmente
   workflow_dispatch:
 
 jobs:
@@ -26,14 +24,22 @@ jobs:
 
       - name: Run Flet Pack and Build EXE
         run: |
-          # CORREÇÃO: O argumento --onefile foi removido, pois não é reconhecido pelo PyInstaller na CI.
           flet pack main.py --name PlantHub `
           --icon "assets/planthub_icon.ico" `
           --add-data "assets;assets"
 
+      - name: Inject Database and Config Files
+        run: |
+          mkdir dist/database
+
+          Copy-Item -Path .\database\schema.sql -Destination .\dist\database\schema.sql
+          Copy-Item -Path .\database\seeds.py -Destination .\dist\database\seeds.py
+          Copy-Item -Path .\database\static_content.py -Destination .\dist\database\static_content.py
+          Copy-Item -Path .\database\Horta.db -Destination .\dist\database\Horta.db
+          
       - name: 📁 Upload Executable to Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: PlantHub-Windows-EXE
           path: dist/PlantHub.exe
-          retention-days: 7 # Mantém o executável disponível por 7 dias
+          retention-days: 7 

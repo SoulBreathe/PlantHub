@@ -35,7 +35,6 @@ jobs:
           Copy-Item -Path .\database\schema.sql -Destination .\dist\database\schema.sql
           Copy-Item -Path .\database\seeds.py -Destination .\dist\database\seeds.py
           Copy-Item -Path .\database\static_content.py -Destination .\dist\database\static_content.py
-          Copy-Item -Path .\database\Horta.db -Destination .\dist\database\Horta.db
           
       - name: 📁 Upload Executable to Artifacts
         uses: actions/upload-artifact@v4

@@ -4,6 +4,8 @@ from typing import Optional
 
 @dataclass
 class Planta:
+    """Modelo de dados para a tabela MinhasPlantas."""
+
     id_planta: Optional[int] = None
     nome_personalizado: str = ""
     data_plantio: Optional[str] = None

@@ -12,7 +12,6 @@ def PlantaNovaView(page: ft.Page):
     especies = db.get_all_especies()
     locais = db.get_all_locais()
 
-    # Opções
     opcoes_especies = [
         ft.dropdown.Option(key=str(e.id_especie), text=e.nome_popular) for e in especies
     ]
@@ -64,7 +63,6 @@ def PlantaNovaView(page: ft.Page):
         tooltip="Selecionar Data",
         on_click=lambda _: page.open(date_picker),
     )
-
     linha_data = ft.Row(
         [txt_data, btn_calendario], alignment=ft.MainAxisAlignment.CENTER, width=280
     )
@@ -94,8 +92,6 @@ def PlantaNovaView(page: ft.Page):
             page.open(ft.SnackBar(ft.Text(f"Erro: {ex}"), bgcolor="red"))
 
     # --- Montagem do Layout ---
-
-    # Validação inicial: Impede cadastro se não houver dados base
     if not especies or not locais:
         conteudo = ft.Column(
             controls=[

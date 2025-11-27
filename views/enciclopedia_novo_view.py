@@ -8,9 +8,7 @@ from components.card_padrao import CardPremium
 def EnciclopediaNovoView(page: ft.Page):
     db = DatabaseService()
 
-    # =========================================================================
-    # ABA 1: NOVA ESPÉCIE
-    # =========================================================================
+    # --- ABA 1: NOVA ESPÉCIE ---
     txt_nome_pop = ft.TextField(label="Nome Popular", border_color="#097A12")
     txt_nome_cient = ft.TextField(
         label="Nome Científico", text_size=12, border_color="#097A12"
@@ -19,7 +17,7 @@ def EnciclopediaNovoView(page: ft.Page):
     dd_rega = ft.Dropdown(
         label="Frequência de Rega",
         options=[
-            ft.dropdown.Option("Diária"),
+            ft.dropdown.Option("Diária (Terra úmida)"),
             ft.dropdown.Option("Regular (2-3 dias)"),
             ft.dropdown.Option("Moderada (Semanal)"),
             ft.dropdown.Option("Pouca (Cactos/Suculentas)"),
@@ -30,10 +28,16 @@ def EnciclopediaNovoView(page: ft.Page):
     dd_sol = ft.Dropdown(
         label="Necessidade de Sol",
         options=[
-            ft.dropdown.Option("Sol Pleno"),
-            ft.dropdown.Option("Sombra Parcial"),
-            ft.dropdown.Option("Sombra"),
+            ft.dropdown.Option("Sol Pleno (6h+)"),
+            ft.dropdown.Option("Sombra Parcial (Manhã/Fim de tarde)"),
+            ft.dropdown.Option("Sombra (Luz Indireta)"),
         ],
+        border_color="#097A12",
+    )
+
+    txt_adubo = ft.TextField(
+        label="Adubação Recomendada",
+        hint_text="Ex: NPK 10-10-10",
         border_color="#097A12",
     )
 
@@ -49,6 +53,7 @@ def EnciclopediaNovoView(page: ft.Page):
             nome_cientifico=txt_nome_cient.value,
             instrucoes_rega=dd_rega.value,
             necessidade_sol=dd_sol.value,
+            uso_adubos=txt_adubo.value,
         )
 
         try:
@@ -69,6 +74,7 @@ def EnciclopediaNovoView(page: ft.Page):
             txt_nome_cient,
             dd_rega,
             dd_sol,
+            txt_adubo,
             ft.Divider(height=10, color="transparent"),
             ft.ElevatedButton(
                 text="Salvar Espécie",
@@ -83,9 +89,7 @@ def EnciclopediaNovoView(page: ft.Page):
         horizontal_alignment=ft.CrossAxisAlignment.CENTER,
     )
 
-    # =========================================================================
-    # ABA 2: NOVA PRAGA
-    # =========================================================================
+    # --- ABA 2: NOVA PRAGA ---
     txt_praga = ft.TextField(label="Nome da Praga/Doença", border_color="red")
     txt_sintomas = ft.TextField(
         label="Sintomas Visíveis", multiline=True, min_lines=2, border_color="red"
@@ -126,7 +130,7 @@ def EnciclopediaNovoView(page: ft.Page):
             ft.Divider(height=10, color="transparent"),
             ft.ElevatedButton(
                 text="Salvar Praga",
-                bgcolor="red",  # Cor de alerta para pragas
+                bgcolor="red",
                 color="white",
                 width=280,
                 height=45,
@@ -137,10 +141,7 @@ def EnciclopediaNovoView(page: ft.Page):
         horizontal_alignment=ft.CrossAxisAlignment.CENTER,
     )
 
-    # =========================================================================
-    # MONTAGEM FINAL
-    # =========================================================================
-
+    # --- Montagem Final ---
     tabs = ft.Tabs(
         selected_index=0,
         indicator_color="#097A12",
@@ -160,14 +161,8 @@ def EnciclopediaNovoView(page: ft.Page):
         expand=True,
     )
 
-    # Usa o CardPremium como container principal
     return ft.Container(
-        content=CardPremium(
-            title="Adicionar à Base",
-            content=tabs,
-            width=350,
-            height=600,  # Altura fixa para acomodar os campos
-        ),
+        content=CardPremium(title="Adicionar à Base", content=tabs, width=380),
         alignment=ft.alignment.center,
         expand=True,
     )

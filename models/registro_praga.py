@@ -4,6 +4,8 @@ from typing import Optional
 
 @dataclass
 class RegistroPraga:
+    """Modelo de dados para a tabela RegistroDePragas (Histórico)."""
+
     id_registro_praga: Optional[int] = None
     data_identificacao: str = ""
     data_resolucao: Optional[str] = None

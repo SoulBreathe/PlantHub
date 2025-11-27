@@ -5,6 +5,7 @@ from services.database_service import DatabaseService
 def DiarioView(page: ft.Page):
     db = DatabaseService()
 
+    # --- EVENTOS AUXILIARES ---
     def abrir_foto(caminho_bruto):
         if not caminho_bruto:
             return
@@ -25,12 +26,14 @@ def DiarioView(page: ft.Page):
         )
 
         dlg = ft.AlertDialog(
+            title=ft.Text("Registro Fotográfico"),
             content=ft.Container(content=img, alignment=ft.alignment.center),
             actions=[ft.TextButton("Fechar", on_click=lambda e: page.close(dlg))],
             actions_alignment=ft.MainAxisAlignment.END,
         )
         page.open(dlg)
 
+    # --- BUILDER DO CARD ---
     def criar_card_diario(entrada):
         dia = entrada.data_registro[8:10]
         mes = entrada.data_registro[5:7]
@@ -95,6 +98,7 @@ def DiarioView(page: ft.Page):
             ),
         )
 
+    # --- LÓGICA DE AGRUPAMENTO ---
     plantas = db.get_all_plantas()
     grupos_de_diario = []
 
@@ -128,6 +132,7 @@ def DiarioView(page: ft.Page):
             )
             grupos_de_diario.append(grupo)
 
+    # --- ESTADO VAZIO ---
     if not grupos_de_diario:
         return ft.Column(
             controls=[

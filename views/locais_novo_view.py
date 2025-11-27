@@ -67,14 +67,14 @@ def LocaisNovaView(page: ft.Page):
         except Exception as ex:
             page.open(ft.SnackBar(ft.Text(f"Erro: {ex}"), bgcolor="red"))
 
-    # Layout do Conteúdo
+    # Layout
     conteudo = ft.Column(
         controls=[
             txt_nome,
             dd_tipo,
             txt_area,
             txt_desc,
-            ft.Divider(height=10, color="transparent"),
+            ft.Divider(height=15, color="transparent"),
             ft.ElevatedButton(
                 text="Salvar Local",
                 on_click=salvar,
@@ -89,7 +89,8 @@ def LocaisNovaView(page: ft.Page):
     )
 
     return ft.Container(
-        content=CardPremium(title="Dados do Ambiente", content=conteudo, width=350),
+        content=CardPremium(title="Novo Local", content=conteudo, width=380),
         alignment=ft.alignment.center,
+        padding=20,
         expand=True,
     )

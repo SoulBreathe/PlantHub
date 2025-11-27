@@ -35,5 +35,6 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    version='C:\\Users\\SUPORTE\\AppData\\Local\\Temp\\e5b06a8e-14e6-49e6-be65-2ff7d4080589',
+    version='C:\\Users\\Breathe\\AppData\\Local\\Temp\\2382bdfe-aa53-451a-910a-8a482455697e',
+    icon=['assets\\planthub_icon.ico'],
 )

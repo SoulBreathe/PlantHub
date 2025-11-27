@@ -8,23 +8,15 @@ def MinhasPlantasView(page: ft.Page):
     plantas = db.get_plantas_completas()
 
     def formatar_data(data_iso):
-        """
-        Converte AAAA-MM-DD para DD/MM/AAAA.
-        Trata casos onde o banco retorna Inteiro ou None.
-        """
+        """Converte AAAA-MM-DD para DD/MM/AAAA de forma segura."""
         if not data_iso:
             return "--/--/----"
 
-        # Garante que é string (resolve o erro do 'int')
         data_str = str(data_iso)
-
         try:
-            # Tenta converter do formato padrão do banco
             data_obj = datetime.strptime(data_str, "%Y-%m-%d")
             return data_obj.strftime("%d/%m/%Y")
         except ValueError:
-            # Se não estiver no formato AAAA-MM-DD, retorna como está
-            # Isso evita que o app trave se houver um dado estranho
             return data_str
 
     def criar_card_planta(p):
@@ -50,7 +42,6 @@ def MinhasPlantasView(page: ft.Page):
                 subtitle=ft.Column(
                     controls=[
                         ft.Text(f"Espécie: {p.nome_popular}", size=12, color="grey"),
-                        # Agora blindado contra erros de tipo 👇
                         ft.Text(
                             f"Local: {p.nome_local} • {formatar_data(p.data_plantio)}",
                             size=12,
@@ -87,7 +78,6 @@ def MinhasPlantasView(page: ft.Page):
             expand=True,
         )
 
-    # --- Lista ---
     return ft.ListView(
         controls=[criar_card_planta(p) for p in plantas],
         padding=15,

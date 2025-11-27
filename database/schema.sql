@@ -1,14 +1,16 @@
+-- Schema do Banco de Dados 
+
 -- 1. Locais
 CREATE TABLE IF NOT EXISTS Locais (
     id_local INTEGER PRIMARY KEY AUTOINCREMENT,
     nome TEXT NOT NULL UNIQUE,
     descricao TEXT,
-    tipo TEXT, -- 'interno', 'externo', etc.
+    tipo TEXT,
     area_m2 REAL DEFAULT 0.0,
     foto_capa TEXT
 );
 
--- 2. Espécies (Base de Conhecimento)
+-- 2. Espécies (Enciclopédia)
 CREATE TABLE IF NOT EXISTS Especies (
     id_especie INTEGER PRIMARY KEY AUTOINCREMENT,
     nome_popular TEXT NOT NULL UNIQUE,
@@ -52,12 +54,12 @@ CREATE TABLE IF NOT EXISTS AgendaDeCuidados (
     detalhes TEXT,
     data_agendada DATE NOT NULL,
     data_conclusao DATE,
-    realizada INTEGER NOT NULL DEFAULT 0, -- 0: False, 1: True
+    realizada INTEGER NOT NULL DEFAULT 0,
     id_planta INTEGER NOT NULL,
     FOREIGN KEY (id_planta) REFERENCES MinhasPlantas(id_planta)
 );
 
--- 6. Pragas (Base de Conhecimento)
+-- 6. Pragas (Enciclopédia)
 CREATE TABLE IF NOT EXISTS PragasDoencas (
     id_praga INTEGER PRIMARY KEY AUTOINCREMENT,
     nome_comum TEXT NOT NULL UNIQUE,
@@ -79,13 +81,14 @@ CREATE TABLE IF NOT EXISTS RegistroDePragas (
     FOREIGN KEY (id_praga) REFERENCES PragasDoencas(id_praga)
 );
 
--- 8, 9, 10. Tabelas de Lógica de Diagnóstico
+-- 8. Diagnóstico (Perguntas)
 CREATE TABLE IF NOT EXISTS DiagnosticoPerguntas (
     id_pergunta INTEGER PRIMARY KEY AUTOINCREMENT,
     texto_pergunta TEXT NOT NULL,
     ordem INTEGER NOT NULL UNIQUE
 );
 
+-- 9. Diagnóstico (Respostas)
 CREATE TABLE IF NOT EXISTS DiagnosticoRespostas (
     id_resposta INTEGER PRIMARY KEY AUTOINCREMENT,
     texto_resposta TEXT NOT NULL,
@@ -95,6 +98,7 @@ CREATE TABLE IF NOT EXISTS DiagnosticoRespostas (
     FOREIGN KEY (id_proxima_pergunta) REFERENCES DiagnosticoPerguntas(id_pergunta)
 );
 
+-- 10. Diagnóstico (Mapeamento)
 CREATE TABLE IF NOT EXISTS DiagnosticoMapeamento (
     id_resposta INTEGER NOT NULL,
     id_praga INTEGER NOT NULL,

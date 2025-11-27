@@ -4,6 +4,8 @@ from typing import Optional
 
 @dataclass
 class Especie:
+    """Modelo de dados para a tabela Especies (Enciclopédia)."""
+
     id_especie: Optional[int] = None
     nome_popular: str = ""
     nome_cientifico: Optional[str] = None

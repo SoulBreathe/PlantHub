@@ -1,21 +1,19 @@
 import flet as ft
 from datetime import datetime
 from services.database_service import DatabaseService
-from models.agenda import TarefaAgenda
 from components.card_padrao import CardPremium
 
 
 def AgendaEditarView(page: ft.Page):
     db = DatabaseService()
 
-    # 1. Pegar ID da rota (ex: /agenda/editar/15)
+    # 1. Buscar Tarefa pelo ID da rota
     try:
         id_agenda = int(page.route.split("/")[-1])
         tarefa_atual = db.get_tarefa_por_id(id_agenda)
     except:
         tarefa_atual = None
 
-    # Se não achar a tarefa, mostra erro e volta
     if not tarefa_atual:
         return ft.Column(
             controls=[
@@ -26,14 +24,13 @@ def AgendaEditarView(page: ft.Page):
             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
         )
 
-    # 2. Carregar Plantas para o Dropdown
+    # 2. Elementos da UI (Dropdowns, Inputs)
     plantas = db.get_all_plantas()
     opcoes_plantas = [
         ft.dropdown.Option(key=str(p.id_planta), text=p.nome_personalizado)
         for p in plantas
     ]
 
-    # 3. Campos Preenchidos com dados atuais
     dd_planta = ft.Dropdown(
         label="Planta",
         options=opcoes_plantas,
@@ -56,7 +53,6 @@ def AgendaEditarView(page: ft.Page):
         value=tarefa_atual.tipo_tarefa,
     )
 
-    # Lógica de Data (DatePicker)
     txt_data = ft.TextField(
         label="Data",
         value=tarefa_atual.data_agendada,
@@ -64,7 +60,11 @@ def AgendaEditarView(page: ft.Page):
         read_only=True,
         border_color="#097A12",
     )
+    txt_detalhes = ft.TextField(
+        label="Detalhes", value=tarefa_atual.detalhes, width=280, border_color="#097A12"
+    )
 
+    # Lógica do DatePicker
     def mudou_data(e):
         if date_picker.value:
             txt_data.value = date_picker.value.strftime("%Y-%m-%d")
@@ -76,20 +76,13 @@ def AgendaEditarView(page: ft.Page):
         confirm_text="Confirmar",
         cancel_text="Cancelar",
     )
-
     btn_cal = ft.IconButton(
         icon=ft.Icons.CALENDAR_MONTH,
         icon_color="#097A12",
-        tooltip="Alterar Data",
         on_click=lambda _: page.open(date_picker),
     )
-
     linha_data = ft.Row(
         [txt_data, btn_cal], alignment=ft.MainAxisAlignment.CENTER, width=280
-    )
-
-    txt_detalhes = ft.TextField(
-        label="Detalhes", value=tarefa_atual.detalhes, width=280, border_color="#097A12"
     )
 
     # --- AÇÃO: SALVAR ---
@@ -100,7 +93,6 @@ def AgendaEditarView(page: ft.Page):
             )
             return
 
-        # Atualiza o objeto localmente
         tarefa_atual.id_planta = int(dd_planta.value)
         tarefa_atual.tipo_tarefa = dd_tipo.value
         tarefa_atual.data_agendada = txt_data.value
@@ -122,7 +114,7 @@ def AgendaEditarView(page: ft.Page):
             page.open(ft.SnackBar(ft.Text("Tarefa removida!"), bgcolor="green"))
             page.go("/agenda")
         except Exception as ex:
-            page.close(dlg_confirmar)
+            page.close(dlg_confirmar)  # Fecha diálogo apenas se ficar na tela
             page.open(ft.SnackBar(ft.Text(f"Erro: {ex}"), bgcolor="red"))
 
     dlg_confirmar = ft.AlertDialog(
@@ -139,15 +131,14 @@ def AgendaEditarView(page: ft.Page):
         actions_alignment=ft.MainAxisAlignment.END,
     )
 
-    # Montagem do Layout Interno
+    # Montagem do Layout
     conteudo = ft.Column(
-        [
+        controls=[
             dd_planta,
             dd_tipo,
             linha_data,
             txt_detalhes,
             ft.Divider(height=10, color="transparent"),
-            # Botões de Ação
             ft.ElevatedButton(
                 text="Salvar Alterações",
                 on_click=salvar,

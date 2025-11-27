@@ -16,7 +16,6 @@ def LocaisView(page: ft.Page):
             "interno": (ft.Icons.HOME, "#097A12"),
         }
 
-        # Busca o estilo ou usa padrão (Cinza)
         icone, cor = mapa_estilo.get(
             local.tipo.lower(), (ft.Icons.LOCATION_ON, ft.Colors.GREY)
         )
@@ -35,13 +34,21 @@ def LocaisView(page: ft.Page):
                         subtitle=ft.Text(
                             f"{local.tipo} • {local.area_m2} m²", size=12, color="grey"
                         ),
+                        trailing=ft.IconButton(
+                            icon=ft.Icons.EDIT_OUTLINED,
+                            icon_color="grey",
+                            tooltip="Editar Local",
+                            on_click=lambda _: page.go(
+                                f"/locais/editar/{local.id_local}"
+                            ),
+                        ),
                     ),
                     ft.Container(
                         padding=ft.padding.only(left=16, right=16, bottom=10),
                         content=ft.Text(
-                            local.descricao or "Sem descrição adicional.",
+                            local.descricao or "Sem descrição.",
                             size=12,
-                            color=ft.Colors.GREY_700,
+                            color="grey",
                             max_lines=2,
                             overflow=ft.TextOverflow.ELLIPSIS,
                         ),
@@ -64,9 +71,6 @@ def LocaisView(page: ft.Page):
             expand=True,
         )
 
-    # --- Lista de Locais ---
     return ft.ListView(
-        controls=[criar_card_local(l) for l in locais],
-        padding=15,
-        expand=True,
+        controls=[criar_card_local(l) for l in locais], padding=15, expand=True
     )

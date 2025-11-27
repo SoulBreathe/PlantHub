@@ -1,16 +1,44 @@
-# Arquivos de Cache e Bytecode do Python
+# ==========================================================
+# 1. PYTHON: Cache, Compilação e Ambiente Virtual (VITAL)
+# ==========================================================
+# Pastas de ambiente virtual
+venv/
+.venv/
+env/
+
+# Arquivos de Cache e Bytecode
 __pycache__/
 *.py[cod]
 *$py.class
 
-# Banco de dados SQLite
+# ==========================================================
+# 2. DEPENDÊNCIAS, BUILD E OUTPUT (PyInstaller/Flet)
+# ==========================================================
+# Pastas de build do PyInstaller
+build/
+dist/
+*.spec
+
+# Arquivos de log/temporários do Flet
+.flet/
+fletd.exe
+flet_build.log
+
+# ==========================================================
+# 3. BANCO DE DADOS E ARQUIVOS DE USUÁRIO (VITAL)
+# ==========================================================
+# Ignora o banco de dados binário (só subimos o schema.sql)
 *.db
 *.db-journal
+database/*.db
 
-# Arquivos de configuração de IDEs
+# Fotos tiradas/copiadas pelo usuário (Não devem ir para o Git)
+assets/uploads/
+
+# ==========================================================
+# 4. IDEs e Sistema Operacional
+# ==========================================================
 .vscode/
 .idea/
-
-# Arquivos gerados pelo sistema operacional
 .DS_Store
 Thumbs.db

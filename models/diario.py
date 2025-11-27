@@ -4,6 +4,8 @@ from typing import Optional
 
 @dataclass
 class EntradaDiario:
+    """Modelo de dados para a tabela DiarioDePlanta."""
+
     id_diario: Optional[int] = None
     data_registro: str = ""
     titulo: Optional[str] = None

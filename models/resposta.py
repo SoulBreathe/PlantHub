@@ -4,6 +4,8 @@ from typing import Optional
 
 @dataclass
 class RespostaDiagnostico:
+    """Modelo de dados para a tabela DiagnosticoRespostas."""
+
     id_resposta: Optional[int] = None
     texto_resposta: str = ""
     id_pergunta: int = 0

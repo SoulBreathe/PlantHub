@@ -5,7 +5,6 @@ from services.database_service import DatabaseService
 def DiagnosticoPerguntaView(page: ft.Page):
     db = DatabaseService()
 
-    # Extrai a ordem da URL (ex: /diagnostico/pergunta/1)
     try:
         ordem_atual = int(page.route.split("/")[-1])
     except (ValueError, IndexError):
@@ -13,83 +12,102 @@ def DiagnosticoPerguntaView(page: ft.Page):
 
     pergunta = db.get_pergunta_por_ordem(ordem_atual)
 
-    # Caso de erro ou fim inesperado
+    # --- Estado de Erro (Sem Pergunta) ---
     if not pergunta:
-        return ft.Column(
-            controls=[
-                ft.Icon(ft.Icons.SEARCH_OFF, size=64, color="grey"),
-                ft.Text("Pergunta não encontrada.", size=18, color="#333333"),
-                ft.ElevatedButton("Voltar", on_click=lambda _: page.go("/diagnostico")),
-            ],
-            alignment=ft.MainAxisAlignment.CENTER,
-            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-            expand=True,
+        return ft.Container(
+            alignment=ft.alignment.center,
+            content=ft.Column(
+                [
+                    ft.Icon(ft.Icons.SEARCH_OFF, size=64, color="grey"),
+                    ft.Text(
+                        "Não foi possível determinar o problema.",
+                        size=18,
+                        weight=ft.FontWeight.BOLD,
+                        color="#333",
+                    ),
+                    ft.ElevatedButton(
+                        "Voltar ao Início", on_click=lambda _: page.go("/diagnostico")
+                    ),
+                ],
+                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+            ),
         )
 
-    # Busca respostas vinculadas a esta pergunta
-    # Nota: Certifique-se que o método no DatabaseService é 'get_respostas_por_pergunta'
     respostas = db.get_respostas_por_pergunta(pergunta.id_pergunta)
 
-    def processar_resposta(e, id_resposta):
-        # 1. Verifica se essa resposta leva a um diagnóstico (Praga)
-        praga = db.verificar_diagnostico(id_resposta)
+    # --- Lógica de Navegação ---
+    def processar_resposta(id_resposta, id_proxima):
+        praga_detectada = db.verificar_diagnostico(id_resposta)
 
-        if praga:
-            page.go(f"/diagnostico/resultado/{praga.id_praga}")
-            return
-
-        # 2. Se não for diagnóstico, tenta ir para a próxima pergunta
-        # Nota: Aqui segue a lógica linear (ordem + 1).
-        # Futuramente pode-se usar o campo 'id_proxima_pergunta' da tabela de Respostas.
-        proxima_ordem = ordem_atual + 1
-
-        if db.get_pergunta_por_ordem(proxima_ordem):
-            page.go(f"/diagnostico/pergunta/{proxima_ordem}")
+        if praga_detectada:
+            page.go(f"/diagnostico/resultado/{praga_detectada.id_praga}")
         else:
-            page.open(
-                ft.SnackBar(
-                    ft.Text("Fim do questionário. Nenhum diagnóstico conclusivo.")
-                )
-            )
+            proxima = id_proxima if id_proxima else (ordem_atual + 1)
+            page.go(f"/diagnostico/pergunta/{proxima}")
 
-    # --- Elementos Visuais ---
+    # --- Elementos da UI ---
+    barra_progresso = ft.ProgressBar(
+        value=ordem_atual * 0.25, color="#097A12", bgcolor=ft.Colors.GREY_200, height=8
+    )
 
-    titulo_ordem = ft.Text(
+    titulo = ft.Text(
         f"PERGUNTA {ordem_atual}", color="#097A12", weight=ft.FontWeight.BOLD, size=14
     )
 
-    texto_pergunta = ft.Text(
+    texto_perg = ft.Text(
         pergunta.texto_pergunta,
-        size=22,
+        size=24,
         text_align=ft.TextAlign.CENTER,
-        weight=ft.FontWeight.W_600,
+        weight=ft.FontWeight.BOLD,
         color="#333333",
     )
 
     lista_botoes = []
     for resp in respostas:
         btn = ft.Container(
-            content=ft.Text(resp.texto_resposta, size=16, color="#333333"),
+            content=ft.Row(
+                [
+                    ft.Text(
+                        resp.texto_resposta,
+                        size=16,
+                        color="#333333",
+                        weight=ft.FontWeight.W_500,
+                        expand=True,
+                    ),
+                    ft.Icon(ft.Icons.CHEVRON_RIGHT, color="#097A12"),
+                ],
+                alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+            ),
             padding=20,
-            width=320,
+            width=350,
             bgcolor="white",
-            border=ft.border.all(1, "#097A12"),
+            border=ft.border.all(1, "#E0E0E0"),
             border_radius=12,
-            alignment=ft.alignment.center,
-            ink=True,  # Efeito visual de clique
-            on_click=lambda e, id=resp.id_resposta: processar_resposta(e, id),
+            shadow=ft.BoxShadow(
+                blur_radius=5, color=ft.Colors.with_opacity(0.05, "black")
+            ),
+            on_click=lambda e, r_id=resp.id_resposta, p_id=resp.id_proxima_pergunta: processar_resposta(
+                r_id, p_id
+            ),
+            ink=True,
+            animate=ft.Animation(200, "easeOut"),
         )
         lista_botoes.append(btn)
 
-    return ft.Column(
-        controls=[
-            ft.Container(height=20),
-            titulo_ordem,
-            ft.Container(height=10),
-            texto_pergunta,
-            ft.Container(height=40),
-            ft.Column(controls=lista_botoes, spacing=15),
-        ],
-        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+    # --- Layout Final ---
+    return ft.Container(
+        padding=20,
+        content=ft.Column(
+            controls=[
+                barra_progresso,
+                ft.Container(height=20),
+                titulo,
+                ft.Container(height=10),
+                texto_perg,
+                ft.Container(height=40),
+                ft.Column(lista_botoes, spacing=15),
+            ],
+            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+        ),
         expand=True,
     )

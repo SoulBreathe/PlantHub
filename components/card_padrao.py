@@ -7,20 +7,29 @@ class CardPremium(ft.Container):
         self,
         content: ft.Control,
         title: Optional[str] = None,
-        width: int = 400,
+        width: int = 350,
         height: Optional[int] = None,
-        padding: int = 20,
+        padding: int = 30,
     ):
-        """Componente visual padronizado para formulários (Card branco com sombra)."""
+        """
+        Componente visual padronizado para formulários.
+        Possui sombra suave, bordas arredondadas e ajuste automático de altura (tight).
+        """
 
-        # Monta a estrutura interna
+        # Estrutura interna
         elementos = []
 
         if title:
             elementos.extend(
                 [
-                    ft.Text(title, size=18, weight=ft.FontWeight.BOLD, color="#333333"),
-                    ft.Divider(height=10, color="transparent"),
+                    ft.Text(
+                        title,
+                        size=22,
+                        weight=ft.FontWeight.BOLD,
+                        color="#333333",
+                        text_align=ft.TextAlign.CENTER,
+                    ),
+                    ft.Divider(height=20, color="transparent"),
                 ]
             )
 
@@ -31,18 +40,18 @@ class CardPremium(ft.Container):
             height=height,
             padding=padding,
             bgcolor="white",
-            border_radius=12,
-            alignment=ft.alignment.center,
+            border_radius=20,
+            alignment=None,  # None permite que o 'tight' da Column funcione
+            clip_behavior=ft.ClipBehavior.HARD_EDGE,
             shadow=ft.BoxShadow(
-                blur_radius=10,
-                spread_radius=1,
+                blur_radius=15,
+                spread_radius=2,
                 color=ft.Colors.with_opacity(0.1, "black"),
-                offset=ft.Offset(0, 2),
+                offset=ft.Offset(0, 4),
             ),
             content=ft.Column(
                 controls=elementos,
-                spacing=5,
-                # Se não tem altura fixa, ajusta-se ao conteúdo (tight)
+                spacing=0,
                 tight=True if height is None else False,
                 alignment=ft.MainAxisAlignment.CENTER,
                 horizontal_alignment=ft.CrossAxisAlignment.CENTER,

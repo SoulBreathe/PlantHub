@@ -6,86 +6,154 @@ def DiagnosticoResultadoView(page: ft.Page):
     db = DatabaseService()
     praga = None
 
-    # Tenta extrair o ID da rota e buscar a praga correspondente
+    # Tenta pegar o ID da URL e buscar a praga
     try:
         id_praga = int(page.route.split("/")[-1])
-        # Filtra na lista (solução temporária enquanto não temos get_by_id no service)
         todas = db.get_all_pragas()
         praga = next((p for p in todas if p.id_praga == id_praga), None)
-    except (ValueError, IndexError):
+    except:
         pass
 
-    # --- Tela de Erro (Caso ID inválido ou não encontrado) ---
+    # Se não encontrar, mostra erro
     if not praga:
         return ft.Column(
-            controls=[
-                ft.Icon(ft.Icons.ERROR_OUTLINE, size=64, color="red"),
-                ft.Text("Resultado não encontrado.", size=18, color="grey"),
-                ft.ElevatedButton("Voltar", on_click=lambda _: page.go("/diagnostico")),
-            ],
+            [ft.Text("Erro ao carregar resultado.")],
             alignment=ft.MainAxisAlignment.CENTER,
-            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-            expand=True,
         )
 
-    # --- Tela de Sucesso (Resultado) ---
-    return ft.Column(
-        controls=[
-            ft.Icon(ft.Icons.MEDICAL_SERVICES_OUTLINED, color="#097A12", size=60),
-            ft.Text("Diagnóstico Identificado", size=14, color="grey"),
-            ft.Text(
-                praga.nome_comum, size=26, weight=ft.FontWeight.BOLD, color="#333333"
-            ),
-            ft.Container(height=20),
-            # Card com Detalhes
-            ft.Container(
-                padding=20,
-                bgcolor="white",
-                border_radius=12,
-                shadow=ft.BoxShadow(blur_radius=10, color=ft.Colors.BLACK12),
-                width=350,  # Largura fixa para ficar elegante
-                content=ft.Column(
-                    controls=[
-                        ft.Text("Sintomas:", weight=ft.FontWeight.BOLD, size=14),
-                        ft.Text(
-                            praga.sintomas or "Não informados.",
-                            size=14,
-                            color="#555555",
-                        ),
-                        ft.Divider(height=20, color="#eeeeee"),
-                        ft.Row(
-                            [
-                                ft.Icon(ft.Icons.HEALING, size=18, color="#097A12"),
-                                ft.Text(
-                                    "Tratamento:",
-                                    weight=ft.FontWeight.BOLD,
-                                    size=14,
-                                    color="#097A12",
-                                ),
-                            ]
-                        ),
-                        ft.Text(
-                            praga.tratamento or "Consulte um especialista.",
-                            size=15,
-                            weight=ft.FontWeight.W_500,
-                        ),
-                    ],
-                    spacing=5,
+    # --- 1. PREPARAÇÃO DA IMAGEM ---
+    if praga.foto_exemplo:
+        src = praga.foto_exemplo.replace("\\", "/")
+        img_content = ft.Image(
+            src=src,
+            fit=ft.ImageFit.COVER,
+            width=float("inf"),
+            height=250,  # Altura da imagem
+        )
+    else:
+        img_content = ft.Container(
+            height=250,
+            width=float("inf"),
+            bgcolor=ft.Colors.with_opacity(0.1, "red"),
+            alignment=ft.alignment.center,
+            content=ft.Icon(ft.Icons.BUG_REPORT, size=80, color="red"),
+        )
+
+    # --- 2. CARD PRINCIPAL (Resultado) ---
+    card_principal = ft.Container(
+        bgcolor="white",
+        border_radius=15,
+        shadow=ft.BoxShadow(blur_radius=10, color=ft.Colors.BLACK12),
+        width=450,
+        clip_behavior=ft.ClipBehavior.HARD_EDGE,
+        content=ft.Column(
+            spacing=0,
+            controls=[
+                # Cabeçalho Verde
+                ft.Container(
+                    bgcolor="#E8F5E9",
+                    padding=15,
+                    width=float("inf"),
+                    alignment=ft.alignment.center,
+                    content=ft.Text(
+                        "Diagnóstico Concluído!",
+                        color="#097A12",
+                        weight=ft.FontWeight.BOLD,
+                        size=18,
+                    ),
                 ),
-            ),
-            ft.Container(height=30),
-            ft.ElevatedButton(
-                text="Concluir Diagnóstico",
-                bgcolor="#097A12",
-                color="white",
-                height=45,
-                width=200,
-                on_click=lambda _: page.go("/diagnostico"),
-            ),
-        ],
-        alignment=ft.MainAxisAlignment.CENTER,
-        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-        padding=20,
-        scroll=ft.ScrollMode.AUTO,  # Importante caso o texto do tratamento seja longo
+                # Imagem Grande
+                img_content,
+                # Texto (Nome e Sintomas)
+                ft.Container(
+                    padding=ft.padding.all(20),
+                    content=ft.Column(
+                        [
+                            ft.Text(
+                                praga.nome_comum,
+                                size=28,
+                                weight=ft.FontWeight.BOLD,
+                                color="#333",
+                                text_align=ft.TextAlign.CENTER,
+                            ),
+                            ft.Text(
+                                praga.sintomas or "Sintomas não descritos.",
+                                text_align=ft.TextAlign.CENTER,
+                                color="grey",
+                                size=15,
+                                italic=True,
+                            ),
+                        ],
+                        spacing=5,
+                        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                    ),
+                ),
+            ],
+        ),
+    )
+
+    # --- 3. CARD TRATAMENTO (Recomendação) ---
+    texto_tratamento = praga.tratamento
+    if not texto_tratamento or texto_tratamento.strip() == "":
+        texto_tratamento = "Nenhum tratamento específico cadastrado."
+
+    card_tratamento = ft.Container(
+        padding=25,
+        bgcolor="white",
+        border_radius=15,
+        border=ft.border.all(1, "#e0e0e0"),
+        width=450,
+        content=ft.Column(
+            [
+                ft.Row(
+                    [
+                        ft.Icon(ft.Icons.HEALING, color="#097A12", size=24),
+                        ft.Text(
+                            "Tratamento Recomendado",
+                            weight=ft.FontWeight.BOLD,
+                            size=16,
+                            color="#097A12",
+                        ),
+                    ]
+                ),
+                ft.Divider(height=20, color="#eeeeee"),
+                ft.Text(
+                    texto_tratamento,
+                    size=16,
+                    color="black",
+                    weight=ft.FontWeight.NORMAL,
+                    text_align=ft.TextAlign.LEFT,
+                    selectable=True,
+                ),
+            ],
+            spacing=5,
+        ),
+    )
+
+    # --- LAYOUT FINAL ---
+    return ft.Container(
+        padding=ft.padding.symmetric(vertical=20, horizontal=10),
+        bgcolor="#F5F5F5",
+        alignment=ft.alignment.top_center,
+        content=ft.Column(
+            controls=[
+                card_principal,
+                ft.Container(height=15),
+                card_tratamento,
+                ft.Container(height=30),
+                ft.ElevatedButton(
+                    "Concluir",
+                    icon=ft.Icons.CHECK,
+                    bgcolor="#097A12",
+                    color="white",
+                    width=200,
+                    height=45,
+                    style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=25)),
+                    on_click=lambda _: page.go("/diagnostico"),
+                ),
+            ],
+            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+            scroll=ft.ScrollMode.AUTO,
+        ),
         expand=True,
     )

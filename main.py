@@ -1,32 +1,21 @@
 import flet as ft
 
-# --- LAYOUT & HOME ---
+# --- IMPORTS DAS VIEWS ---
 from views.app_layout import AppLayout
 from views.home_view import HomeView
-
-# --- LOCAIS ---
 from views.locais_view import LocaisView
 from views.locais_novo_view import LocaisNovaView
-
-# --- PLANTAS ---
+from views.locais_editar_view import LocaisEditarView
 from views.plantas_view import MinhasPlantasView
 from views.plantas_novo_view import PlantaNovaView
 from views.plantas_editar_view import PlantaEditarView
-
-# --- DIÁRIO ---
 from views.diario_view import DiarioView
 from views.diario_novo_view import DiarioNovoView
-
-# --- AGENDA ---
 from views.agenda_view import AgendaView
 from views.agenda_novo_view import AgendaNovoView
 from views.agenda_editar_view import AgendaEditarView
-
-# --- ENCICLOPÉDIA ---
 from views.enciclopedia_view import EnciclopediaView
 from views.enciclopedia_novo_view import EnciclopediaNovoView
-
-# --- DIAGNÓSTICO ---
 from views.diagnostico_view import DiagnosticoView
 from views.diagnostico_pergunta_view import DiagnosticoPerguntaView
 from views.diagnostico_resultado_view import DiagnosticoResultadoView
@@ -41,7 +30,7 @@ def criar_appbar(
     acao=None,
     icone_acao: str = ft.Icons.ADD,
 ):
-    # 1. Botão Voltar (Esquerda)
+    # 1. Botão Voltar
     leading = None
     if voltar_para:
         leading = ft.IconButton(
@@ -50,7 +39,7 @@ def criar_appbar(
             on_click=lambda _: page.go(voltar_para),
         )
 
-    # 2. Título (Centro)
+    # 2. Título
     content_titulo = ft.Row(
         controls=[],
         alignment=ft.MainAxisAlignment.CENTER,
@@ -64,7 +53,7 @@ def criar_appbar(
         ft.Text(titulo, size=20, weight=ft.FontWeight.BOLD, color="#333333")
     )
 
-    # 3. Ações (Direita)
+    # 3. Ações
     actions = []
     if acao:
         actions.append(
@@ -99,10 +88,19 @@ def criar_appbar(
 
 
 def main(page: ft.Page):
+    # --- Configuração Geral do Tema ---
     page.title = "PlantHub"
     page.theme = ft.Theme(color_scheme_seed="#097A12", use_material3=True)
     page.bgcolor = "#F5F5F5"
     page.theme_mode = ft.ThemeMode.LIGHT
+
+    # --- CONFIGURAÇÃO DA JANELA ---
+    page.window.width = 1000
+    page.window.height = 850
+    page.window.min_width = 500
+    page.window.min_height = 600
+    page.window.resizable = True
+    page.window.center()
 
     def route_change(route):
         print(f"Rota atual: {page.route}")
@@ -110,9 +108,10 @@ def main(page: ft.Page):
 
         appbar = None
         content = ft.Container()
+        # Alinhamento vertical: CENTRO para cadastros/edição, TOPO para listas/home.
         alignment = (
             ft.MainAxisAlignment.CENTER
-            if page.route.endswith("/novo")
+            if page.route.endswith(("/novo", "/editar/"))
             else ft.MainAxisAlignment.START
         )
 
@@ -136,6 +135,11 @@ def main(page: ft.Page):
             appbar = criar_appbar(
                 page, "Novo Local", ft.Icons.ADD_LOCATION_ALT, voltar_para="/locais"
             )
+        elif page.route.startswith("/locais/editar/"):
+            content = LocaisEditarView(page)
+            appbar = criar_appbar(
+                page, "Editar Local", ft.Icons.EDIT, voltar_para="/locais"
+            )
 
         # --- PLANTAS ---
         elif page.route == "/plantas":
@@ -152,7 +156,6 @@ def main(page: ft.Page):
             appbar = criar_appbar(
                 page, "Nova Planta", ft.Icons.ADD, voltar_para="/plantas"
             )
-
         elif page.route.startswith("/plantas/editar/"):
             content = PlantaEditarView(page)
             appbar = criar_appbar(
@@ -190,7 +193,6 @@ def main(page: ft.Page):
             appbar = criar_appbar(
                 page, "Agendar Tarefa", ft.Icons.EVENT_AVAILABLE, voltar_para="/agenda"
             )
-
         elif page.route.startswith("/agenda/editar/"):
             content = AgendaEditarView(page)
             appbar = criar_appbar(
@@ -222,19 +224,18 @@ def main(page: ft.Page):
             appbar = criar_appbar(
                 page, "Diagnóstico", ft.Icons.HEALTH_AND_SAFETY, voltar_para="/"
             )
-
         elif page.route.startswith("/diagnostico/pergunta/"):
             content = DiagnosticoPerguntaView(page)
             appbar = criar_appbar(
                 page, "Assistente", ft.Icons.SUPPORT_AGENT, voltar_para="/diagnostico"
             )
-
         elif page.route.startswith("/diagnostico/resultado/"):
             content = DiagnosticoResultadoView(page)
             appbar = criar_appbar(
                 page, "Resultado", ft.Icons.CHECK_CIRCLE, voltar_para="/diagnostico"
             )
 
+        # --- ERRO ---
         else:
             content = ft.Text("Página não encontrada")
             appbar = criar_appbar(page, "Erro 404", voltar_para="/")

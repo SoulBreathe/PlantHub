@@ -3,7 +3,6 @@ import sqlite3
 from typing import List, Optional
 from datetime import date
 
-# --- Imports dos Models ---
 from models.agenda import TarefaAgenda
 from models.diario import EntradaDiario
 from models.especie import Especie
@@ -21,7 +20,6 @@ class DatabaseService:
     _instance: Optional["DatabaseService"] = None
     _connection: Optional[sqlite3.Connection] = None
 
-    # Caminhos absolutos
     DATABASE_PATH = os.path.join(os.getcwd(), "database", "Horta.db")
     SCHEMA_PATH = os.path.join(os.getcwd(), "database", "schema.sql")
 
@@ -32,7 +30,6 @@ class DatabaseService:
         return cls._instance
 
     def _initialize(self):
-        """Inicia conexão, cria tabelas e popula dados base se necessário."""
         os.makedirs(os.path.dirname(self.DATABASE_PATH), exist_ok=True)
         self.connect()
         self._seed_initial_data()
@@ -46,7 +43,7 @@ class DatabaseService:
                 self._connection.execute("PRAGMA foreign_keys = ON;")
                 self._create_database()
             except sqlite3.Error as e:
-                print(f"Erro BD: {e}")
+                print(f"Erro de Conexão: {e}")
                 self._connection = None
 
     def _create_database(self) -> None:
@@ -56,14 +53,12 @@ class DatabaseService:
             self._connection.commit()
 
     def _seed_initial_data(self):
-        """Chama o arquivo externo de seeds para popular dados fixos."""
         if not self._connection:
             return
-
         try:
             popular_banco(self._connection)
         except Exception as e:
-            print(f"Erro ao popular seeds: {e}")
+            print(f"Erro no Seed: {e}")
 
     def get_connection(self) -> sqlite3.Connection:
         if self._connection is None:
@@ -76,7 +71,7 @@ class DatabaseService:
             self._connection = None
 
     # =========================================================================
-    #  1. AGENDA (COMPLETA: Abas, Dashboard, Edição)
+    #  1. AGENDA
     # =========================================================================
 
     def get_agenda_futura(self) -> List[TarefaAgenda]:
@@ -97,7 +92,6 @@ class DatabaseService:
         )
         return [TarefaAgenda(*row) for row in cur.fetchall()]
 
-    # Mantido para compatibilidade se alguma view antiga chamar
     def get_agenda_pendente(self) -> List[TarefaAgenda]:
         return self.get_agenda_futura() + self.get_agenda_atrasada()
 
@@ -133,21 +127,12 @@ class DatabaseService:
         t.id_agenda = cur.lastrowid
 
     def marcar_tarefa_realizada(self, id_agenda: int):
-        from datetime import date
-
         hoje = date.today().strftime("%Y-%m-%d")
-
         conn = self.get_connection()
-
         conn.execute(
-            """
-            UPDATE AgendaDeCuidados 
-            SET realizada = 1, data_conclusao = ? 
-            WHERE id_agenda = ?
-        """,
+            "UPDATE AgendaDeCuidados SET realizada = 1, data_conclusao = ? WHERE id_agenda = ?",
             (hoje, id_agenda),
         )
-
         conn.commit()
 
     def get_tarefa_por_id(self, id_agenda: int) -> Optional[TarefaAgenda]:
@@ -160,9 +145,7 @@ class DatabaseService:
         conn = self.get_connection()
         conn.execute(
             """
-            UPDATE AgendaDeCuidados 
-            SET tipo_tarefa = ?, detalhes = ?, data_agendada = ?, id_planta = ? 
-            WHERE id_agenda = ?
+            UPDATE AgendaDeCuidados SET tipo_tarefa = ?, detalhes = ?, data_agendada = ?, id_planta = ? WHERE id_agenda = ?
         """,
             (t.tipo_tarefa, t.detalhes, t.data_agendada, t.id_planta, t.id_agenda),
         )
@@ -176,6 +159,7 @@ class DatabaseService:
     # =========================================================================
     #  2. DIAGNÓSTICO
     # =========================================================================
+
     def get_pergunta_por_ordem(self, ordem: int) -> Optional[PerguntaDiagnostico]:
         cur = self.get_connection().cursor()
         cur.execute("SELECT * FROM DiagnosticoPerguntas WHERE ordem = ?", (ordem,))
@@ -203,6 +187,7 @@ class DatabaseService:
     # =========================================================================
     #  3. DIÁRIO
     # =========================================================================
+
     def get_diario_por_planta(self, id_planta: int) -> List[EntradaDiario]:
         cur = self.get_connection().cursor()
         cur.execute(
@@ -214,7 +199,6 @@ class DatabaseService:
     def add_entrada_diario(self, d: EntradaDiario):
         conn = self.get_connection()
         cur = conn.cursor()
-        # CORRIGIDO: 5 parâmetros
         cur.execute(
             "INSERT INTO DiarioDePlanta (data_registro, titulo, observacao, caminho_foto, id_planta) VALUES (?, ?, ?, ?, ?)",
             (d.data_registro, d.titulo, d.observacao, d.caminho_foto, d.id_planta),
@@ -226,6 +210,7 @@ class DatabaseService:
     # =========================================================================
     #  4. ESPÉCIES
     # =========================================================================
+
     def get_all_especies(self) -> List[Especie]:
         cur = self.get_connection().cursor()
         cur.execute("SELECT * FROM Especies ORDER BY nome_popular")
@@ -255,6 +240,7 @@ class DatabaseService:
     # =========================================================================
     #  5. LOCAIS
     # =========================================================================
+
     def get_all_locais(self) -> List[Local]:
         cur = self.get_connection().cursor()
         cur.execute("SELECT * FROM Locais ORDER BY nome")
@@ -272,9 +258,63 @@ class DatabaseService:
         except sqlite3.IntegrityError:
             raise ValueError(f"Local '{l.nome}' já existe.")
 
+    def get_local_por_id(self, id_local: int) -> Optional[Local]:
+        cur = self.get_connection().cursor()
+        cur.execute("SELECT * FROM Locais WHERE id_local = ?", (id_local,))
+        row = cur.fetchone()
+        return Local(*row) if row else None
+
+    def update_local(self, l: Local):
+        conn = self.get_connection()
+        conn.execute(
+            """UPDATE Locais SET nome = ?, descricao = ?, tipo = ?, area_m2 = ? WHERE id_local = ?""",
+            (l.nome, l.descricao, l.tipo, l.area_m2, l.id_local),
+        )
+        conn.commit()
+
+    def count_plantas_no_local(self, id_local: int) -> int:
+        cur = self.get_connection().cursor()
+        return cur.execute(
+            "SELECT COUNT(*) FROM MinhasPlantas WHERE id_local = ?", (id_local,)
+        ).fetchone()[0]
+
+    def _get_or_create_local_padrao(self) -> int:
+        cur = self.get_connection().cursor()
+        cur.execute("SELECT id_local FROM Locais WHERE nome = 'Sem Local'")
+        row = cur.fetchone()
+        if row:
+            return row[0]
+        else:
+            cur.execute(
+                "INSERT INTO Locais (nome, tipo, descricao) VALUES (?, ?, ?)",
+                ("Sem Local", "Outro", "Plantas aguardando realocação."),
+            )
+            self.get_connection().commit()
+            return cur.lastrowid
+
+    def migrar_e_excluir_local(self, id_local_para_excluir: int):
+        conn = self.get_connection()
+        try:
+            id_destino = self._get_or_create_local_padrao()
+            if id_local_para_excluir == id_destino:
+                raise ValueError("Não é possível excluir o local padrão.")
+
+            conn.execute(
+                "UPDATE MinhasPlantas SET id_local = ? WHERE id_local = ?",
+                (id_destino, id_local_para_excluir),
+            )
+            conn.execute(
+                "DELETE FROM Locais WHERE id_local = ?", (id_local_para_excluir,)
+            )
+            conn.commit()
+        except Exception as e:
+            conn.rollback()
+            raise e
+
     # =========================================================================
-    #  6. PLANTAS (COMPLETO: Update, Delete, GetById)
+    #  6. PLANTAS
     # =========================================================================
+
     def get_all_plantas(self) -> List[Planta]:
         cur = self.get_connection().cursor()
         cur.execute("SELECT * FROM MinhasPlantas ORDER BY nome_personalizado")
@@ -317,7 +357,8 @@ class DatabaseService:
         return Planta(*row) if row else None
 
     def update_planta(self, p: Planta):
-        self.get_connection().execute(
+        conn = self.get_connection()
+        conn.execute(
             """
             UPDATE MinhasPlantas SET nome_personalizado = ?, data_plantio = ?, id_especie = ?, id_local = ? WHERE id_planta = ?
         """,
@@ -328,7 +369,8 @@ class DatabaseService:
                 p.id_local,
                 p.id_planta,
             ),
-        ).commit()
+        )
+        conn.commit()
 
     def delete_planta(self, id_planta: int):
         conn = self.get_connection()
@@ -340,6 +382,7 @@ class DatabaseService:
     # =========================================================================
     #  7. PRAGAS & REGISTROS
     # =========================================================================
+
     def get_all_pragas(self) -> List[Praga]:
         cur = self.get_connection().cursor()
         cur.execute("SELECT * FROM PragasDoencas ORDER BY nome_comum")
@@ -370,6 +413,7 @@ class DatabaseService:
     # =========================================================================
     #  8. DASHBOARD HOME
     # =========================================================================
+
     def get_resumo_dashboard(self) -> dict:
         cur = self.get_connection().cursor()
         qtd_plantas = cur.execute("SELECT COUNT(*) FROM MinhasPlantas").fetchone()[0]

@@ -15,7 +15,7 @@ def AgendaView(page: ft.Page):
         except:
             return data_iso
 
-    # --- COMPONENTE: Card de Tarefa Otimizado ---
+    # --- Componente Card Tarefa (Com Animação de Colapso) ---
     def criar_card_tarefa(t, atrasada=False):
         cor_borda = "red" if atrasada else "#097A12"
         icone = ft.Icons.WARNING if atrasada else ft.Icons.EVENT
@@ -23,7 +23,6 @@ def AgendaView(page: ft.Page):
         texto_detalhes = f" | {t.detalhes}" if t.detalhes else ""
         titulo_exibicao = t.tipo_tarefa if t.tipo_tarefa else "Tarefa sem tipo"
 
-        # 1. Criamos o container vazio primeiro para termos a referência dele
         card_container = ft.Container(
             padding=10,
             bgcolor="white",
@@ -31,30 +30,32 @@ def AgendaView(page: ft.Page):
             margin=ft.margin.only(bottom=8),
             border=ft.border.only(left=ft.BorderSide(4, cor_borda)),
             shadow=ft.BoxShadow(blur_radius=5, color=ft.Colors.BLACK12),
-            animate_opacity=300,  # Animação suave ao sumir
+            animate=ft.Animation(300, ft.AnimationCurve.EASE_OUT),
+            animate_opacity=300,
         )
 
-        # 2. Função de concluir ULTRA RÁPIDA (UI Otimista)
         def on_concluir(e):
-            # PASSO A: Some com o card da tela IMEDIATAMENTE
-            card_container.visible = False
+            # Colapso Visual (UI Otimista)
+            card_container.height = 0
             card_container.opacity = 0
-            card_container.update()  # Atualiza só este card, não a tela toda!
+            card_container.margin = 0
+            card_container.padding = 0
+            card_container.update()
 
-            # PASSO B: Atualiza o banco em segundo plano
             try:
                 db.marcar_tarefa_realizada(t.id_agenda)
                 page.open(
                     ft.SnackBar(ft.Text("Concluída!"), bgcolor="green", duration=1000)
                 )
             except Exception as ex:
-                # Se der erro, mostra o card de volta (rollback visual)
-                card_container.visible = True
+                # Rollback em caso de erro
+                card_container.height = None
                 card_container.opacity = 1
+                card_container.margin = ft.margin.only(bottom=8)
+                card_container.padding = 10
                 card_container.update()
                 page.open(ft.SnackBar(ft.Text(f"Erro: {ex}"), bgcolor="red"))
 
-        # 3. Conteúdo do Card
         card_container.content = ft.ListTile(
             leading=ft.Icon(icone, color=cor_icone, size=28),
             title=ft.Text(
@@ -77,7 +78,7 @@ def AgendaView(page: ft.Page):
                         icon=ft.Icons.CHECK_BOX_OUTLINE_BLANK,
                         icon_color="grey",
                         tooltip="Concluir",
-                        on_click=on_concluir,  # Chama a função rápida local
+                        on_click=on_concluir,
                     ),
                 ],
                 alignment=ft.MainAxisAlignment.END,
@@ -85,12 +86,9 @@ def AgendaView(page: ft.Page):
                 width=100,
             ),
         )
-
         return card_container
 
-    # =========================================================================
-    # ABA 1: PRÓXIMAS
-    # =========================================================================
+    # --- ABA 1: PRÓXIMAS ---
     lista_futura = db.get_agenda_futura()
     if not lista_futura:
         conteudo_futuro = ft.Column(
@@ -108,9 +106,7 @@ def AgendaView(page: ft.Page):
             expand=True,
         )
 
-    # =========================================================================
-    # ABA 2: ATRASADAS
-    # =========================================================================
+    # --- ABA 2: ATRASADAS ---
     lista_atrasada = db.get_agenda_atrasada()
     if not lista_atrasada:
         conteudo_atrasado = ft.Column(
@@ -128,9 +124,7 @@ def AgendaView(page: ft.Page):
             expand=True,
         )
 
-    # =========================================================================
-    # ABA 3: DASHBOARD (Recalcula ao abrir a Agenda)
-    # =========================================================================
+    # --- ABA 3: DASHBOARD ---
     stats = db.get_estatisticas_agenda()
     total = stats["pendentes"] + stats["atrasadas"] + stats["concluidas"]
 
@@ -200,7 +194,7 @@ def AgendaView(page: ft.Page):
             padding=20,
             content=ft.Column(
                 [
-                    ft.Text("Desempenho Geral", size=20, weight=ft.FontWeight.BOLD),
+                    ft.Text("Desempenho", size=20, weight=ft.FontWeight.BOLD),
                     ft.Container(content=grafico, height=250),
                     legenda,
                     ft.Divider(),
@@ -211,22 +205,25 @@ def AgendaView(page: ft.Page):
             ),
         )
 
-    # =========================================================================
-    # TABS
-    # =========================================================================
-    tabs = ft.Tabs(
-        selected_index=0,
-        indicator_color="#097A12",
-        label_color="#097A12",
-        unselected_label_color="grey",
-        tabs=[
-            ft.Tab(text="Próximas", icon=ft.Icons.EVENT, content=conteudo_futuro),
-            ft.Tab(text="Atrasadas", icon=ft.Icons.WARNING, content=conteudo_atrasado),
-            ft.Tab(
-                text="Relatório", icon=ft.Icons.PIE_CHART, content=conteudo_dashboard
-            ),
-        ],
+    # --- Montagem Final ---
+    return ft.Container(
         expand=True,
+        content=ft.Tabs(
+            selected_index=0,
+            indicator_color="#097A12",
+            label_color="#097A12",
+            unselected_label_color="grey",
+            tabs=[
+                ft.Tab(text="Próximas", icon=ft.Icons.EVENT, content=conteudo_futuro),
+                ft.Tab(
+                    text="Atrasadas", icon=ft.Icons.WARNING, content=conteudo_atrasado
+                ),
+                ft.Tab(
+                    text="Relatório",
+                    icon=ft.Icons.PIE_CHART,
+                    content=conteudo_dashboard,
+                ),
+            ],
+            expand=True,
+        ),
     )
-
-    return ft.Container(content=tabs, expand=True)

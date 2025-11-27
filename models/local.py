@@ -4,6 +4,8 @@ from typing import Optional
 
 @dataclass
 class Local:
+    """Modelo de dados para a tabela Locais."""
+
     id_local: Optional[int] = None
     nome: str = ""
     descricao: Optional[str] = None

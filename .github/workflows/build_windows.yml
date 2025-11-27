@@ -19,17 +19,15 @@ jobs:
       - name: Set up Python 3.10
         uses: actions/setup-python@v4
         with:
-          python-version: "3.10" # Versão estável
+          python-version: "3.10"
 
       - name: Install dependencies
         run: pip install flet pyinstaller
 
-      # CRÍTICO: Rodar o flet pack com os assets e ícone
       - name: Run Flet Pack and Build EXE
         run: |
-          # O PyInstaller usa o PowerShell no Windows. 
-          # O acento grave (`) é o caractere de continuação de linha no PowerShell.
-          flet pack main.py --name PlantHub --onefile `
+          # CORREÇÃO: O argumento --onefile foi removido, pois não é reconhecido pelo PyInstaller na CI.
+          flet pack main.py --name PlantHub `
           --icon "assets/planthub_icon.ico" `
           --add-data "assets;assets"
 

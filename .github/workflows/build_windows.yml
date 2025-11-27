@@ -30,11 +30,13 @@ jobs:
 
       - name: Inject Database and Config Files
         run: |
-          mkdir dist/database
-
-          Copy-Item -Path .\database\schema.sql -Destination .\dist\database\schema.sql
-          Copy-Item -Path .\database\seeds.py -Destination .\dist\database\seeds.py
-          Copy-Item -Path .\database\static_content.py -Destination .\dist\database\static_content.py
+          mkdir .\dist\database -Force
+          
+          Copy-Item -Path .\database\schema.sql -Destination .\dist\database\schema.sql -Force
+          Copy-Item -Path .\database\seeds.py -Destination .\dist\database\seeds.py -Force
+          Copy-Item -Path .\database\static_content.py -Destination .\dist\database\static_content.py -Force
+          
+          Copy-Item -Path .\assets -Destination .\dist\assets -Recurse -Force
           
       - name: 📁 Upload Executable to Artifacts
         uses: actions/upload-artifact@v4
